@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Syamimi's Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF6F0; --card:#FFFFFF; --ink:#33303A; --muted:#8A8594; --line:#ECE4D9;
+  --plum:#8E5A79; --plum-soft:#F3E7EE;
+  --sage:#6E9080; --sage-soft:#E6EFE9;
+  --gold:#C08A3E; --gold-soft:#F6EAD3;
+  --rose:#C77D9A; --rose-soft:#F7E6EE;
+  --ok:#5B8C6E; --ok-bg:#E4EFE7;
+  --warn:#C08A3E; --warn-bg:#F6EAD3;
+  --risk:#C0554E; --risk-bg:#F6E1DF;
+  --muted-bg:#EFEBE4;
+  --shadow:0 1px 2px rgba(51,48,58,.04), 0 6px 20px rgba(51,48,58,.06);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--paper); color:var(--ink); -webkit-font-smoothing:antialiased;
+  font-size:15px; line-height:1.5;
+}
+h1,h2{font-family:"Fraunces",Georgia,serif; font-weight:600; letter-spacing:-.01em; margin:0}
+h1{font-size:26px}
+h2{font-size:17px}
+em{font-style:italic}
+button{font-family:inherit; cursor:pointer}
+.mono{font-variant-numeric:tabular-nums; font-feature-settings:"tnum"}
+
+/* layout */
+.app{display:flex; min-height:100%}
+.sidebar{
+  width:236px; flex:0 0 236px; background:#fff; border-right:1px solid var(--line);
+  display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+}
+.brand{padding:22px 20px 14px}
+.brand .mark{font-family:"Fraunces",serif; font-size:19px; font-weight:600}
+.brand .sub{font-size:12px; color:var(--muted); margin-top:2px}
+.nav{padding:6px 12px; overflow-y:auto; flex:1}
+.nav a{
+  display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px;
+  color:var(--ink); text-decoration:none; font-size:14px; font-weight:500; cursor:pointer;
+  margin-bottom:2px;
+}
+.nav a:hover{background:var(--paper)}
+.nav a.active{background:var(--plum-soft); color:var(--plum)}
+.dot{width:9px; height:9px; border-radius:50%; flex:0 0 auto}
+.dot.plum{background:var(--plum)} .dot.sage{background:var(--sage)}
+.dot.gold{background:var(--gold)} .dot.rose{background:var(--rose)}
+.side-foot{padding:12px; border-top:1px solid var(--line); display:flex; gap:8px}
+.side-foot .btn{flex:1; font-size:12px; padding:8px}
+
+.main{flex:1; min-width:0; display:flex; flex-direction:column}
+.topbar{display:none}
+#view{padding:28px 34px 60px; max-width:920px; margin:0 auto; width:100%}
+
+/* headers */
+.shead{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:20px}
+.lead{color:var(--muted); margin:6px 0 0; font-size:14px; max-width:60ch}
+.panel{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 18px; margin-bottom:16px; box-shadow:var(--shadow)}
+.phead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+
+/* buttons */
+.btn{border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px;
+  padding:8px 14px; font-size:13px; font-weight:500}
+.btn:hover{border-color:var(--plum); color:var(--plum)}
+.btn.primary{background:var(--plum); color:#fff; border-color:var(--plum)}
+.btn.primary:hover{background:#7d4d6a; color:#fff}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px; font-size:12px}
+.icon{border:none; background:transparent; color:var(--muted); font-size:14px; padding:4px 6px; border-radius:6px}
+.icon:hover{background:var(--paper); color:var(--plum)}
+.icon.tiny{font-size:11px; opacity:0; transition:opacity .15s}
+.habrow:hover .icon.tiny{opacity:.6}
+
+/* lists */
+.list{display:flex; flex-direction:column}
+.listrow{display:flex; align-items:center; gap:12px; padding:11px 4px; border-bottom:1px solid var(--line)}
+.listrow:last-child{border-bottom:none}
+.listrow.static{padding:9px 4px}
+.cell{flex:0 0 auto}
+.cell.grow{flex:1 1 auto; min-width:0}
+.cell.actions{display:flex; gap:2px; opacity:0; transition:opacity .15s}
+.listrow:hover .cell.actions{opacity:1}
+.sub{color:var(--muted); font-size:12.5px; margin-top:2px}
+.empty{color:var(--muted); font-size:13.5px; padding:14px 4px; font-style:italic}
+
+/* badges */
+.badge{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600; white-space:nowrap}
+.badge.ok{background:var(--ok-bg); color:var(--ok)}
+.badge.warn{background:var(--warn-bg); color:var(--warn)}
+.badge.risk{background:var(--risk-bg); color:var(--risk)}
+.badge.muted{background:var(--muted-bg); color:var(--muted)}
+
+/* hero + dashboard */
+.hero{margin-bottom:22px}
+.hero-greet{font-family:"Fraunces",serif; font-size:32px; font-weight:600; letter-spacing:-.02em}
+.hero-date{color:var(--muted); margin-top:4px}
+.hero-focus{margin-top:8px; font-size:14px}
+.dash-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow)}
+.accent-gold{border-top:3px solid var(--gold)}
+.viva-card{display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:2px}
+.viva-card .big{font-family:"Fraunces",serif; font-size:42px; font-weight:600; line-height:1}
+.viva-card .big.tbc{font-size:30px; color:var(--gold)}
+.biglabel{color:var(--muted); font-size:12.5px; margin-bottom:8px}
+.ring-card{display:flex; align-items:center; gap:14px}
+.ring{width:96px; height:96px; flex:0 0 auto}
+.ring-bg{fill:none; stroke:var(--muted-bg); stroke-width:12}
+.ring-fg{fill:none; stroke:var(--sage); stroke-width:12; stroke-linecap:round; transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset .6s ease}
+.ring-pct{font-family:"Fraunces",serif; font-size:22px; font-weight:600; fill:var(--ink); text-anchor:middle}
+.ring-sub{font-size:9px; fill:var(--muted); text-anchor:middle; text-transform:uppercase; letter-spacing:.08em}
+.ring-meta{font-size:13px; line-height:1.5}
+.stat-card{display:flex; flex-direction:column; justify-content:center; gap:10px}
+.stat{display:flex; align-items:baseline; gap:8px}
+.statnum{font-family:"Fraunces",serif; font-size:22px; font-weight:600; min-width:52px}
+.statlab{color:var(--muted); font-size:12.5px}
+.quotes blockquote{margin:0 0 10px; padding:10px 14px; background:var(--plum-soft); border-radius:10px;
+  color:var(--plum); font-size:13.5px; border:none}
+.quotes blockquote:last-child{margin-bottom:0}
+
+/* banner */
+.banner{background:var(--gold-soft); border:1px solid #eaddc2; border-radius:12px; padding:12px 16px;
+  margin-bottom:16px; font-size:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+
+/* checklists */
+.check{display:flex; flex-direction:column; gap:2px}
+.checkrow{display:flex; align-items:flex-start; gap:10px; padding:7px 4px; font-size:14px; cursor:pointer}
+.checkrow input{margin-top:3px; accent-color:var(--plum); width:16px; height:16px; flex:0 0 auto}
+.checkrow input:checked + span{color:var(--muted); text-decoration:line-through}
+
+/* reference tables */
+.reftable{width:100%; border-collapse:collapse; font-size:13.5px}
+.reftable td{padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+.reftable tr:last-child td{border-bottom:none}
+.reftable .rk{font-weight:600; width:44%}
+.avoid{display:flex; flex-direction:column; gap:10px}
+.avoidrow{border-left:3px solid var(--line); padding:2px 0 2px 12px}
+.av-x{color:var(--risk); font-size:13px; font-weight:500}
+.av-ok{color:var(--ok); font-size:13px; margin-top:3px}
+.verb{margin-bottom:14px}
+.verb:last-child{margin-bottom:0}
+.verb-t{font-weight:600; font-size:13px; margin-bottom:6px}
+.verb blockquote{margin:0; padding:12px 16px; background:var(--sage-soft); border-radius:10px;
+  font-size:13.5px; line-height:1.6; border:none}
+
+/* money */
+.goal-top{display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px}
+.bar{height:12px; background:var(--muted-bg); border-radius:20px; overflow:hidden}
+.bar-fg{height:100%; background:linear-gradient(90deg,var(--gold),var(--rose)); border-radius:20px; transition:width .6s ease}
+.goal-actions{display:flex; justify-content:space-between; align-items:center; margin-top:10px}
+
+/* habits grid */
+.habits{width:100%}
+.habrow{display:flex; align-items:center; border-bottom:1px solid var(--line)}
+.habrow:last-child{border-bottom:none}
+.habrow.head{border-bottom:2px solid var(--line)}
+.habname{flex:1 1 auto; padding:10px 6px; font-size:13.5px; display:flex; align-items:center; gap:6px}
+.habcell{flex:0 0 40px; text-align:center; padding:8px 0}
+.habcell.hdr{font-size:11px; color:var(--muted); font-weight:600; line-height:1.2}
+.habcell.hdr span{display:block; font-size:12px; color:var(--ink)}
+.habcell.hdr.today{color:var(--plum)}
+.habcell.hdr.today span{color:var(--plum)}
+.habcell input{accent-color:var(--sage); width:18px; height:18px; cursor:pointer}
+.addhabit{display:flex; gap:8px; margin:-6px 0 16px}
+.addhabit input{flex:1; padding:9px 12px; border:1px solid var(--line); border-radius:10px; font-family:inherit; font-size:14px}
+
+/* modal */
+.modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:50}
+.modal.show{display:flex}
+#modalBackdrop{position:absolute; inset:0; background:rgba(51,48,58,.35)}
+.modal-box{position:relative; background:#fff; border-radius:var(--radius); width:min(460px,92vw);
+  max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(51,48,58,.25)}
+.modal-head{padding:18px 20px 6px}
+.modal-head h3{margin:0; font-family:"Fraunces",serif; font-weight:600; font-size:18px}
+#modalBody{padding:8px 20px}
+#modalBody label{display:block; font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:12px}
+#modalBody input,#modalBody select,#modalBody textarea{
+  display:block; width:100%; margin-top:5px; padding:9px 11px; border:1px solid var(--line);
+  border-radius:10px; font-family:inherit; font-size:14px; color:var(--ink); background:#fff}
+#modalBody textarea{min-height:64px; resize:vertical}
+.modal-foot{padding:12px 20px 18px; display:flex; gap:10px; justify-content:flex-end}
+
+@media (max-width:860px){
+  .sidebar{position:fixed; left:0; top:0; z-index:40; transform:translateX(-100%); transition:transform .25s ease; box-shadow:var(--shadow)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar.open ~ .main #drawerBackdrop{display:block}
+  #drawerBackdrop{display:none; position:fixed; inset:0; background:rgba(51,48,58,.3); z-index:35}
+  .topbar{display:flex; align-items:center; gap:12px; padding:12px 16px; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10}
+  .topbar .mark{font-family:"Fraunces",serif; font-weight:600; font-size:17px}
+  #menuBtn{border:none; background:transparent; font-size:22px; line-height:1; padding:2px 6px}
+  #view{padding:20px 16px 60px}
+  .dash-grid{grid-template-columns:1fr}
+  .hero-greet{font-size:26px}
+  .habcell{flex:0 0 34px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="mark">Syamimi's Planner</div><div class="sub">Personal / Life</div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <button class="btn ghost" id="backupBtn">Backup</button>
+      <button class="btn ghost" id="restoreBtn">Restore</button>
+      <input type="file" id="restoreInput" accept="application/json" hidden>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><button id="menuBtn">☰</button><span class="mark">Syamimi's Planner</span></div>
+    <div id="drawerBackdrop"></div>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div id="modalBackdrop"></div>
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle">Add</h3></div>
+    <div id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="modalCancel">Cancel</button>
+      <button class="btn primary" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Syamimi's Planner — standalone, single-device (localStorage)
+   Mirrors the Notion "Personal/Life" workspace.
+   ============================================================ */
+
+const STORE_KEY = "syamimi_planner_v1";
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = (s) =>
+  String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const todayISO = () => new Date().toISOString().slice(0, 10);
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return esc(iso);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function daysBetween(aIso, bIso) {
+  const a = new Date(aIso + "T00:00:00"), b = new Date(bIso + "T00:00:00");
+  return Math.round((b - a) / 86400000);
+}
+function addMonths(iso, months) {
+  const d = new Date(iso + "T00:00:00");
+  d.setMonth(d.getMonth() + Number(months || 0));
+  return d.toISOString().slice(0, 10);
+}
+function mondayOf(date) {
+  const d = new Date(date);
+  const day = (d.getDay() + 6) % 7; // Mon=0
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/* ---------- static reference content (from the Viva Question Bank) ---------- */
+const REF = {
+  numbers: [
+    ["Test accuracy (all 3 models)", "1.0000"],
+    ["RNN train / inference", "33.65 s / ≈1.01 s"],
+    ["LSTM train / inference", "≈35.7 s / ≈1.02 s"],
+    ["CNN-LSTM train / inference", "≈102.9 s / ≈1.77 s"],
+    ["RTE samples", "15 (rice, meat, seafood, emulsion)"],
+    ["Storage days measured", "Day 1 / Day 3 / Day 5"],
+    ["Replicates", "50 per sample per day"],
+    ["Frequency range / points", "2000–3000 MHz / 500 points"],
+    ["Storage temperature", "23 ± 1 °C (room temp)"],
+    ["Batch / epochs / patience / seed", "64 / 100 / 10 / 42"],
+    ["Split", "80:20 stratified; SMOTE + scaler train-only"],
+    ["Labels", "Fresh = Day 1 · Spoiled = Day 3 + 5 (1:2)"],
+    ["ε′ minimum (Table 4.3)", "−5.976 (calibration artefact — unverified)"],
+    ["Ayam Kurma Day 1 ε″ (corrected)", "+13.338 ± 2.500"],
+  ],
+  avoidUse: [
+    ["Framing RNN/LSTM as stepping across storage days as a time sequence",
+     "Each spectrum = one timestep. Storage day sets the class (Fresh/Spoiled), not a temporal axis."],
+    ["\u201CWhy did LSTM outperform RNN and CNN-LSTM?\u201D",
+     "All three hit identical 1.0000. RNN is recommended for speed, not a higher score."],
+    ["Calling storage \u201Cchilled\u201D or \u201Ccold\u201D",
+     "Room temperature, 23 ± 1 °C. Refrigerated/frozen is future work."],
+    ["Citing \u201CFigures 4.31–4.75\u201D for learning curves",
+     "RNN 4.9–4.13, LSTM 4.14–4.18, CNN-LSTM 4.19–4.23, metrics 4.24, timing 4.25."],
+    ["\u201CAccuracy instead of F1-score\u201D",
+     "Accuracy, precision, recall and macro-F1 all reported (Tables 3.5, 4.10)."],
+    ["Hyperparameters \u201Ctuned empirically per model\u201D",
+     "Batch 64, 100 epochs, patience 10 held identical across all three — controlled comparison."],
+    ["Treating Day 3 as a separate third class",
+     "Binary only: Fresh = Day 1; Spoiled = Day 3 + Day 5 together."],
+    ["Reverse-hydration for both Sambal Ikan Bilis and Chilli Tuna",
+     "Reverse hydration = Group C (Tuna in Water, Sambal Ikan Bilis). Chilli Tuna sits alone in Group D."],
+    ["Citing Weng (2020), Qi (2021), Gupta (2023) as confirmed",
+     "Verify each against your Chapter 2 reference list + DOI first."],
+  ],
+  groups: [
+    ["A", "Strictly monotonic ε′ decrease Day 1→3→5 — straightforward dehydration and ionic-concentration loss."],
+    ["B", "Nine samples incl. Chicken Curry — net decrease by Day 5 but non-monotonic at Day 3 (dehydration offset by transient water release)."],
+    ["C", "Tuna in Water, Sambal Ikan Bilis — ε′ increases with spoilage: reverse hydration in protein-rich, high-moisture matrices."],
+    ["D", "Chilli Tuna alone — chaotic, crossing pattern from competing multi-pathway mechanisms (lipid oxidation, protein hydrolysis, moisture redistribution)."],
+  ],
+  verbatim: [
+    ["Q5.10 — One-sentence summary",
+     "This thesis develops and validates the first deep learning framework — comparing RNN, LSTM, and CNN-LSTM — for non-destructive, real-time spoilage classification of Malaysian-style ready-to-eat foods using open-ended coaxial probe dielectric spectroscopy, achieving perfect classification accuracy and recommending RNN as the most computationally efficient model for practical deployment."],
+    ["Q5.1 — Objectives recap",
+     "O1 propose the framework — met via the five-stage pipeline (Ch. 3), validated in 4.4 as the first OECP-dielectric + sequential-DL integration for multi-ingredient cooked RTE. O2 generate the dataset — met via 15 Malaysian RTE samples across Day 1/3/5 at 2000–3000 MHz (4.2). O3 evaluate RNN/LSTM/CNN-LSTM — met via the comparison (4.3.4): all three reach 1.0000, RNN recommended as most efficient."],
+  ],
+};
+
+/* ---------- default seed (first run only) ---------- */
+function seed() {
+  const wk = mondayOf(new Date());
+  return {
+    meta: { name: "Syamimi", vivaDate: "", focus: "Viva prep + journal paper" },
+    savings: { label: "Viva fees", target: 1500, saved: 0 },
+
+    tasks: [
+      { id: uid(), title: "Finish journal paper draft", status: "In progress", priority: "High", due: "2026-07-17", notes: "Discussion + Introduction, then flow check." },
+      { id: uid(), title: "Suggest examiner names to supervisor", status: "To do", priority: "High", due: "", notes: "Pre-viva admin." },
+      { id: uid(), title: "AM read + PM blind recall (Q4.4)", status: "To do", priority: "Medium", due: todayISO(), notes: "Two-touchpoint viva prep." },
+    ],
+    modelRuns: [
+      { id: uid(), arch: "RNN", accuracy: "1.0000", dataset: "V3 + SMOTE (Option B)", notes: "Fastest — 33.65 s train / 1.01 s infer. Recommended.", date: "" },
+      { id: uid(), arch: "LSTM", accuracy: "1.0000", dataset: "V3 + SMOTE (Option B)", notes: "≈35.7 s train / 1.02 s infer.", date: "" },
+      { id: uid(), arch: "CNN-LSTM", accuracy: "1.0000", dataset: "V3 + SMOTE (Option B)", notes: "≈102.9 s train / 1.77 s infer — extra cost not justified at room temp.", date: "" },
+    ],
+    literature: [
+      { id: uid(), author: "Metlek et al.", year: "2021", finding: "LSTM effective for moisture-related dielectric changes (regression).", relevance: "Closest precedent — adapted idea to classification." },
+      { id: uid(), author: "Shojaeyan et al.", year: "2023", finding: "Shallow ML on single-commodity dielectric data.", relevance: "Contrast — no sequential DL, not multi-ingredient." },
+      { id: uid(), author: "Trigoso et al.", year: "2020", finding: "Dielectric quality prediction, single commodity.", relevance: "Contrast precedent." },
+      { id: uid(), author: "D. Liu et al.", year: "2021", finding: "Shallow ML, dielectric food quality.", relevance: "Contrast precedent." },
+    ],
+    writing: [
+      { id: uid(), chapter: "Ch.1 Introduction", status: "Done", notes: "" },
+      { id: uid(), chapter: "Ch.2 Literature Review", status: "Done", notes: "" },
+      { id: uid(), chapter: "Ch.3 Methodology", status: "Done", notes: "" },
+      { id: uid(), chapter: "Ch.4 Results & Discussion", status: "Done", notes: "" },
+      { id: uid(), chapter: "Ch.5 Conclusion", status: "Done", notes: "" },
+    ],
+    expenses: [
+      { id: uid(), date: todayISO(), item: "Monthly savings allocation", type: "Savings", category: "Viva fund", amount: 0 },
+    ],
+    habits: [
+      { id: uid(), name: "Log spending in Pocket" },
+      { id: uid(), name: "AM read (question bank)" },
+      { id: uid(), name: "PM blind recall (notebook)" },
+      { id: uid(), name: "Journal paper — 1 focused block" },
+    ],
+    weeklyHabits: [
+      { id: uid(), name: "Transfer Pocket entries to Notion" },
+    ],
+    habitLog: {},
+    skincare: [
+      { id: uid(), product: "Example moisturiser", category: "Skincare", opened: todayISO(), pao: 12, status: "In use", notes: "Edit or delete this sample." },
+    ],
+    dates: [
+      { id: uid(), title: "Journal paper submission", date: "2026-07-17", notes: "Moved from 12 July." },
+      { id: uid(), title: "Viva date", date: "", notes: "TBC — depends on pre-viva admin." },
+    ],
+    contacts: [
+      { id: uid(), name: "Supervisor", role: "Supervisor", detail: "Pre-viva forms, examiner nominations." },
+    ],
+    weekly: [
+      { id: uid(), week: "Week 27", date: wk.toISOString().slice(0, 10), wins: "", improve: "", next: "" },
+    ],
+    notes: [
+      { id: uid(), title: "Welcome", date: todayISO(), body: "This is your standalone planner. Everything saves to this device's browser. Use Backup in the sidebar now and then." },
+    ],
+    questionBank: [
+      { id: uid(), qid: "Q4.4", risk: "Highest", topic: "Perfect 1.0000 accuracy — overfitting, leakage, or genuinely easy?", mastery: "Practicing" },
+      { id: uid(), qid: "Q3.12", risk: "Highest", topic: "Replicate-level vs sample-day-level split inflating accuracy.", mastery: "Not started" },
+      { id: uid(), qid: "Q3.10", risk: "Highest", topic: "Single fixed seed 42 — enough, or check across seeds?", mastery: "Not started" },
+      { id: uid(), qid: "Q4.5", risk: "Highest", topic: "Negative ε′ minimum (−5.976) — calibration artefact, not yet verified.", mastery: "Not started" },
+      { id: uid(), qid: "Q4.6", risk: "Highest", topic: "ε″ side never audited against raw data like ε′ was.", mastery: "Not started" },
+      { id: uid(), qid: "Q3.5", risk: "Highest", topic: "Single-assessor sensory labelling, no instrumental verification.", mastery: "Practicing" },
+    ],
+    weakSpots: [],
+    checklists: {
+      preViva: [
+        "Confirm split level: replicate vs sample-day (Q3.12)",
+        "Confirm multiple seeds vs only seed 42 (Q3.10)",
+        "Check raw CSV for the negative ε′ sample — Chilli Tuna candidate (Q4.5)",
+        "Audit ε″ side: 4.2.5, Table 4.4, Figs 4.5–4.8 (Q4.6)",
+        "Confirm 1.5/2.3 has literature-based justification for 2000–3000 MHz + Day 1/3/5 (Q1.5/Q1.6)",
+        "Confirm Ayam Kurma text + Group A–D wording match V3 (Q4.7/Q4.8)",
+        "Re-verify Table 4.2 figures: Sambal Udang, Ayam Masak Merah, Tuna Mayonnaise (Q4.17)",
+        "Double-check Metlek (2021) + Weng/Qi/Gupta citations (Q2.15)",
+        "Memorise Q5.1 and Q5.10 verbatim",
+      ],
+      slidePrep: [
+        "Outline the deck (Weeks 28–29)",
+        "Title + objectives slide",
+        "Methodology: five-stage framework",
+        "Results: Table 4.10 + confusion matrices",
+        "Group A–D ε′ trend figure",
+        "Limitations + future work",
+        "Closing slide (Q5.10 line)",
+        "Rehearse timing",
+      ],
+      adminPre: [
+        "Form PIT12",
+        "Form PIT26D",
+        "Form PG05",
+        "Suggest examiner names to supervisor",
+      ],
+      adminPost: [
+        "Confirm viva date once cleared",
+        "Book room / online setup",
+        "Print thesis copies",
+        "Final slide rehearsal",
+      ],
+    },
+    confidence: [
+      "All three models reached 1.0000 — the finding is the single-timestep insight, not the number.",
+      "Where a limitation is real (Q3.5, Q4.5, Q4.6), answer candidly. Honesty reads as strength.",
+      "I know this thesis better than anyone in the room.",
+    ],
+  };
+}
+
+/* ---------- state ---------- */
+let DB = load();
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return seed();
+    return Object.assign(seed(), JSON.parse(raw));
+  } catch (e) { return seed(); }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+  catch (e) { alert("Couldn't save — browser storage may be full or blocked."); }
+}
+
+/* ---------- collection definitions (config-driven CRUD) ---------- */
+const STATUS_COLORS = {
+  "Done": "ok", "In use": "ok", "Confident": "ok",
+  "In progress": "warn", "Practicing": "warn", "Running low": "warn",
+  "To do": "muted", "Not started": "muted", "Replaced": "muted",
+  "Highest": "risk", "High": "risk", "Empty": "risk",
+  "Medium": "warn", "Low": "muted",
+};
+function badge(val) {
+  if (!val) return "";
+  const c = STATUS_COLORS[val] || "muted";
+  return `<span class="badge ${c}">${esc(val)}</span>`;
+}
+
+const COLLECTIONS = {
+  tasks: {
+    empty: "No tasks yet. Add the next thing on your plate.",
+    fields: [
+      { key: "title", label: "Task", type: "text", req: true },
+      { key: "status", label: "Status", type: "select", options: ["To do", "In progress", "Done"] },
+      { key: "priority", label: "Priority", type: "select", options: ["High", "Medium", "Low"] },
+      { key: "due", label: "Due", type: "date" },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+    row: (r) => `<div class="cell grow"><strong>${esc(r.title)}</strong>${r.notes ? `<div class="sub">${esc(r.notes)}</div>` : ""}</div>
+      <div class="cell">${badge(r.priority)}</div>
+      <div class="cell">${badge(r.status)}</div>
+      <div class="cell">${fmtDate(r.due)}</div>`,
+  },
+  modelRuns: {
+    empty: "No model runs logged.",
+    fields: [
+      { key: "arch", label: "Architecture", type: "text", req: true },
+      { key: "accuracy", label: "Accuracy", type: "text" },
+      { key: "dataset", label: "Dataset version", type: "text" },
+      { key: "notes", label: "Notes", type: "textarea" },
+      { key: "date", label: "Date", type: "date" },
+    ],
+    row: (r) => `<div class="cell"><strong>${esc(r.arch)}</strong></div>
+      <div class="cell mono">${esc(r.accuracy)}</div>
+      <div class="cell grow"><div class="sub">${esc(r.dataset)}</div>${r.notes ? `<div class="sub">${esc(r.notes)}</div>` : ""}</div>`,
+  },
+  literature: {
+    empty: "No references yet.",
+    fields: [
+      { key: "author", label: "Author", type: "text", req: true },
+      { key: "year", label: "Year", type: "text" },
+      { key: "finding", label: "Key finding", type: "textarea" },
+      { key: "relevance", label: "Relevance", type: "textarea" },
+    ],
+    row: (r) => `<div class="cell"><strong>${esc(r.author)}</strong> <span class="sub">${esc(r.year)}</span></div>
+      <div class="cell grow"><div>${esc(r.finding)}</div><div class="sub">${esc(r.relevance)}</div></div>`,
+  },
+  writing: {
+    empty: "No chapters listed.",
+    fields: [
+      { key: "chapter", label: "Chapter", type: "text", req: true },
+      { key: "status", label: "Status", type: "select", options: ["Not started", "In progress", "Done"] },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+    row: (r) => `<div class="cell grow"><strong>${esc(r.chapter)}</strong>${r.notes ? `<div class="sub">${esc(r.notes)}</div>` : ""}</div>
+      <div class="cell">${badge(r.status)}</div>`,
+  },
+  expenses: {
+    empty: "No entries. This is the big-picture log — daily spending stays in Pocket.",
+    fields: [
+      { key: "date", label: "Date", type: "date" },
+      { key: "item", label: "Item", type: "text", req: true },
+      { key: "type", label: "Type", type: "select", options: ["Expense", "Savings", "Income"] },
+      { key: "category", label: "Category", type: "text" },
+      { key: "amount", label: "Amount (RM)", type: "number" },
+    ],
+    row: (r) => `<div class="cell">${fmtDate(r.date)}</div>
+      <div class="cell grow"><strong>${esc(r.item)}</strong> <span class="sub">${esc(r.category)}</span></div>
+      <div class="cell">${badge(r.type)}</div>
+      <div class="cell mono">RM ${Number(r.amount || 0).toFixed(2)}</div>`,
+  },
+  skincare: {
+    empty: "No products tracked.",
+    fields: [
+      { key: "product", label: "Product", type: "text", req: true },
+      { key: "category", label: "Category", type: "select", options: ["Skincare", "Makeup", "Suncare", "Other"] },
+      { key: "opened", label: "Date opened", type: "date" },
+      { key: "pao", label: "PAO (months)", type: "number" },
+      { key: "status", label: "Status", type: "select", options: ["In use", "Running low", "Empty", "Replaced"] },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+    row: (r) => {
+      let tag = "";
+      if (r.opened && r.pao) {
+        const exp = addMonths(r.opened, r.pao);
+        const left = daysBetween(todayISO(), exp);
+        const cls = left < 0 ? "risk" : left < 30 ? "warn" : "ok";
+        tag = `<span class="badge ${cls}">${left < 0 ? "expired" : left + " days left"}</span>`;
+      }
+      return `<div class="cell grow"><strong>${esc(r.product)}</strong> <span class="sub">${esc(r.category)}</span>${r.notes ? `<div class="sub">${esc(r.notes)}</div>` : ""}</div>
+        <div class="cell">${r.opened ? fmtDate(r.opened) : "—"}</div>
+        <div class="cell">${tag}</div>
+        <div class="cell">${badge(r.status)}</div>`;
+    },
+  },
+  dates: {
+    empty: "No important dates.",
+    fields: [
+      { key: "title", label: "Title", type: "text", req: true },
+      { key: "date", label: "Date", type: "date" },
+      { key: "notes", label: "Notes", type: "textarea" },
+    ],
+    row: (r) => {
+      let tag = "";
+      if (r.date) {
+        const left = daysBetween(todayISO(), r.date);
+        tag = left < 0 ? `<span class="badge muted">passed</span>` :
+          `<span class="badge ${left < 14 ? "warn" : "ok"}">in ${left} days</span>`;
+      } else tag = `<span class="badge muted">TBC</span>`;
+      return `<div class="cell grow"><strong>${esc(r.title)}</strong>${r.notes ? `<div class="sub">${esc(r.notes)}</div>` : ""}</div>
+        <div class="cell">${r.date ? fmtDate(r.date) : "—"}</div>
+        <div class="cell">${tag}</div>`;
+    },
+  },
+  contacts: {
+    empty: "No contacts.",
+    fields: [
+      { key: "name", label: "Name", type: "text", req: true },
+      { key: "role", label: "Role", type: "text" },
+      { key: "detail", label: "Detail", type: "textarea" },
+    ],
+    row: (r) => `<div class="cell grow"><strong>${esc(r.name)}</strong> <span class="sub">${esc(r.role)}</span>${r.detail ? `<div class="sub">${esc(r.detail)}</div>` : ""}</div>`,
+  },
+  weekly: {
+    empty: "No weekly reviews yet.",
+    fields: [
+      { key: "week", label: "Week", type: "text", req: true },
+      { key: "date", label: "Week starting", type: "date" },
+      { key: "wins", label: "Wins", type: "textarea" },
+      { key: "improve", label: "To improve", type: "textarea" },
+      { key: "next", label: "Focus next week", type: "textarea" },
+    ],
+    row: (r) => `<div class="cell grow"><strong>${esc(r.week)}</strong> <span class="sub">${r.date ? fmtDate(r.date) : ""}</span>
+      ${r.wins ? `<div class="sub">✓ ${esc(r.wins)}</div>` : ""}
+      ${r.improve ? `<div class="sub">△ ${esc(r.improve)}</div>` : ""}
+      ${r.next ? `<div class="sub">→ ${esc(r.next)}</div>` : ""}</div>`,
+  },
+  notes: {
+    empty: "No notes yet.",
+    fields: [
+      { key: "title", label: "Title", type: "text", req: true },
+      { key: "date", label: "Date", type: "date" },
+      { key: "body", label: "Note", type: "textarea" },
+    ],
+    row: (r) => `<div class="cell grow"><strong>${esc(r.title)}</strong> <span class="sub">${r.date ? fmtDate(r.date) : ""}</span>${r.body ? `<div class="sub">${esc(r.body)}</div>` : ""}</div>`,
+  },
+  questionBank: {
+    empty: "No questions.",
+    fields: [
+      { key: "qid", label: "Q ID", type: "text", req: true },
+      { key: "topic", label: "Question / topic", type: "textarea", req: true },
+      { key: "risk", label: "Risk", type: "select", options: ["Highest", "High", "Medium", "Low"] },
+      { key: "mastery", label: "Mastery", type: "select", options: ["Not started", "Practicing", "Confident"] },
+    ],
+    row: (r) => `<div class="cell"><strong class="mono">${esc(r.qid)}</strong></div>
+      <div class="cell grow">${esc(r.topic)}</div>
+      <div class="cell">${badge(r.risk)}</div>
+      <div class="cell">${badge(r.mastery)}</div>`,
+  },
+  weakSpots: {
+    empty: "No weak spots logged. Add anything that tripped you up in recall practice.",
+    fields: [
+      { key: "topic", label: "Weak spot", type: "text", req: true },
+      { key: "fix", label: "Fix / what I missed", type: "textarea" },
+      { key: "status", label: "Status", type: "select", options: ["Open", "Confident"] },
+    ],
+    row: (r) => `<div class="cell grow"><strong>${esc(r.topic)}</strong>${r.fix ? `<div class="sub">${esc(r.fix)}</div>` : ""}</div>
+      <div class="cell">${badge(r.status === "Confident" ? "Confident" : "Open")}</div>`,
+  },
+};
+
+/* ---------- generic collection render + CRUD ---------- */
+function collectionHTML(name, arr) {
+  const cfg = COLLECTIONS[name];
+  if (!arr || !arr.length) return `<div class="empty">${esc(cfg.empty)}</div>`;
+  return `<div class="list">${arr.map((r) => `
+    <div class="listrow" data-coll="${name}" data-id="${r.id}">
+      ${cfg.row(r)}
+      <div class="cell actions">
+        <button class="icon" data-act="edit" title="Edit">✎</button>
+        <button class="icon" data-act="del" title="Delete">✕</button>
+      </div>
+    </div>`).join("")}</div>`;
+}
+
+let modalCtx = null;
+function openForm(coll, id) {
+  const cfg = COLLECTIONS[coll];
+  const arr = getArr(coll);
+  const rec = id ? arr.find((r) => r.id === id) : {};
+  modalCtx = { coll, id };
+  $("#modalTitle").textContent = (id ? "Edit" : "Add") + " · " + labelFor(coll);
+  $("#modalBody").innerHTML = cfg.fields.map((f) => {
+    const v = rec[f.key] != null ? rec[f.key] : "";
+    if (f.type === "textarea")
+      return `<label>${esc(f.label)}<textarea data-f="${f.key}">${esc(v)}</textarea></label>`;
+    if (f.type === "select")
+      return `<label>${esc(f.label)}<select data-f="${f.key}">${f.options.map((o) =>
+        `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+    return `<label>${esc(f.label)}<input data-f="${f.key}" type="${f.type}" value="${esc(v)}"></label>`;
+  }).join("");
+  $("#modal").classList.add("show");
+}
+function closeForm() { $("#modal").classList.remove("show"); modalCtx = null; }
+function submitForm() {
+  if (!modalCtx) return;
+  const { coll, id } = modalCtx;
+  const cfg = COLLECTIONS[coll];
+  const rec = {};
+  $$("[data-f]", $("#modalBody")).forEach((el) => { rec[el.dataset.f] = el.value.trim(); });
+  const missing = cfg.fields.find((f) => f.req && !rec[f.key]);
+  if (missing) { alert(missing.label + " is required."); return; }
+  cfg.fields.forEach((f) => { if (f.type === "number") rec[f.key] = rec[f.key] === "" ? "" : Number(rec[f.key]); });
+  const arr = getArr(coll);
+  if (id) { const i = arr.findIndex((r) => r.id === id); arr[i] = Object.assign(arr[i], rec); }
+  else { rec.id = uid(); arr.unshift(rec); }
+  save(); closeForm(); render();
+}
+function getArr(coll) { return DB[coll]; }
+function labelFor(coll) { return ({
+  tasks: "Task", modelRuns: "Model run", literature: "Reference", writing: "Chapter",
+  expenses: "Entry", skincare: "Product", dates: "Date", contacts: "Contact",
+  weekly: "Weekly review", notes: "Note", questionBank: "Question", weakSpots: "Weak spot",
+})[coll] || "Item"; }
+
+/* ---------- sections ---------- */
+const SECTIONS = [
+  { id: "dashboard", label: "Dashboard", dot: "plum" },
+  { id: "thesis", label: "Thesis Hub", dot: "sage" },
+  { id: "viva", label: "Viva Prep", dot: "gold" },
+  { id: "tasks", label: "Tasks", dot: "plum" },
+  { id: "habits", label: "Habits", dot: "sage" },
+  { id: "money", label: "Expenses & Savings", dot: "gold" },
+  { id: "weekly", label: "Weekly Review", dot: "plum" },
+  { id: "skincare", label: "Skincare & Makeup", dot: "rose" },
+  { id: "dates", label: "Important Dates", dot: "sage" },
+  { id: "contacts", label: "Contacts", dot: "gold" },
+  { id: "notes", label: "Notes / Journal", dot: "plum" },
+];
+let current = location.hash.replace("#", "") || "dashboard";
+
+function sectionHeader(title, sub, addBtn) {
+  return `<div class="shead">
+    <div><h1>${esc(title)}</h1>${sub ? `<p class="lead">${esc(sub)}</p>` : ""}</div>
+    ${addBtn ? `<button class="btn primary" data-add="${addBtn}">+ Add</button>` : ""}
+  </div>`;
+}
+function panel(title, inner, addBtn) {
+  return `<section class="panel">
+    <div class="phead"><h2>${esc(title)}</h2>${addBtn ? `<button class="btn ghost" data-add="${addBtn}">+ Add</button>` : ""}</div>
+    ${inner}
+  </section>`;
+}
+
+function viewDashboard() {
+  const now = new Date();
+  const hr = now.getHours();
+  const greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  const s = DB.savings;
+  const pct = s.target ? Math.min(100, Math.round((s.saved / s.target) * 100)) : 0;
+  const circ = 2 * Math.PI * 52, off = circ * (1 - pct / 100);
+
+  let vivaCard;
+  if (DB.meta.vivaDate) {
+    const left = daysBetween(todayISO(), DB.meta.vivaDate);
+    vivaCard = `<div class="big">${left >= 0 ? left : "—"}</div><div class="biglabel">days to viva · ${fmtDate(DB.meta.vivaDate)}</div>`;
+  } else {
+    vivaCard = `<div class="big tbc">TBC</div><div class="biglabel">viva date — pending pre-viva admin</div>`;
+  }
+
+  const dueTasks = DB.tasks.filter((t) => t.status !== "Done")
+    .sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : 1).slice(0, 5);
+  const mon = mondayOf(new Date());
+  const doneToday = DB.habits.filter((h) => DB.habitLog[h.id + "__" + todayISO()]).length;
+
+  return `
+  <div class="hero">
+    <div class="hero-greet">${greet}, ${esc(DB.meta.name)}.</div>
+    <div class="hero-date">${now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+    <div class="hero-focus">Focus: <em>${esc(DB.meta.focus)}</em></div>
+  </div>
+  <div class="dash-grid">
+    <div class="card accent-gold viva-card">${vivaCard}
+      <button class="btn ghost sm" data-editviva="1">Set viva date</button></div>
+    <div class="card ring-card">
+      <svg viewBox="0 0 120 120" class="ring">
+        <circle cx="60" cy="60" r="52" class="ring-bg"></circle>
+        <circle cx="60" cy="60" r="52" class="ring-fg" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"></circle>
+        <text x="60" y="58" class="ring-pct">${pct}%</text>
+        <text x="60" y="76" class="ring-sub">saved</text>
+      </svg>
+      <div class="ring-meta"><strong>${esc(s.label)}</strong><br>RM ${Number(s.saved).toFixed(0)} / RM ${Number(s.target).toFixed(0)}</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat"><span class="statnum">${doneToday}/${DB.habits.length}</span><span class="statlab">habits today</span></div>
+      <div class="stat"><span class="statnum">${DB.tasks.filter((t) => t.status !== "Done").length}</span><span class="statlab">open tasks</span></div>
+      <div class="stat"><span class="statnum">${DB.questionBank.filter((q) => q.mastery !== "Confident").length}</span><span class="statlab">questions to master</span></div>
+    </div>
+  </div>
+  ${panel("Coming up", DB.tasks.length ? `<div class="list">${dueTasks.map((t) => `
+    <div class="listrow static"><div class="cell grow"><strong>${esc(t.title)}</strong></div>
+    <div class="cell">${badge(t.priority)}</div><div class="cell">${fmtDate(t.due)}</div></div>`).join("") || `<div class="empty">Nothing due — enjoy it.</div>`}</div>` : `<div class="empty">No tasks yet.</div>`)}
+  ${panel("Confidence corner", `<div class="quotes">${DB.confidence.map((c) => `<blockquote>${esc(c)}</blockquote>`).join("")}</div>`)}
+  `;
+}
+
+function viewThesis() {
+  return sectionHeader("Thesis Hub — Food Spoilage ML",
+    "Writing complete (all five chapters Done). Now: viva prep + journal paper.") +
+    panel("Model Runs", collectionHTML("modelRuns", DB.modelRuns), "modelRuns") +
+    panel("Literature", collectionHTML("literature", DB.literature), "literature") +
+    panel("Writing Tracker", collectionHTML("writing", DB.writing), "writing");
+}
+
+function viewViva() {
+  const c = DB.checklists;
+  const checklistHTML = (key, items) => `<div class="check">${items.map((t, i) => {
+    const done = (DB._check && DB._check[key + i]) || false;
+    return `<label class="checkrow"><input type="checkbox" data-chk="${key}" data-ci="${i}" ${done ? "checked" : ""}><span>${esc(t)}</span></label>`;
+  }).join("")}</div>`;
+  DB._check = DB._check || {};
+
+  const refCard = (title, rows2col) => panel(title, `<table class="reftable"><tbody>${rows2col.map((r) =>
+    `<tr><td class="rk">${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join("")}</tbody></table>`);
+
+  let count;
+  if (DB.meta.vivaDate) { const l = daysBetween(todayISO(), DB.meta.vivaDate); count = `${l >= 0 ? l + " days" : "passed"} · ${fmtDate(DB.meta.vivaDate)}`; }
+  else count = "Date TBC — pending pre-viva admin";
+
+  return sectionHeader("Viva Prep", "Two touchpoints daily: AM read, PM blind recall.") +
+    `<div class="banner">🎓 Viva countdown: <strong>${esc(count)}</strong> <button class="btn ghost sm" data-editviva="1">Set date</button></div>` +
+    panel("Question Bank", collectionHTML("questionBank", DB.questionBank), "questionBank") +
+    panel("Pre-Viva Verification Checklist", checklistHTML("preViva", c.preViva)) +
+    panel("Weak-Spots Log", collectionHTML("weakSpots", DB.weakSpots), "weakSpots") +
+    refCard("Numbers Cheat-Sheet", REF.numbers) +
+    panel("Avoid / Use Instead", `<div class="avoid">${REF.avoidUse.map((r) =>
+      `<div class="avoidrow"><div class="av-x">✕ ${esc(r[0])}</div><div class="av-ok">✓ ${esc(r[1])}</div></div>`).join("")}</div>`) +
+    refCard("Group A–D Quick Reference", REF.groups) +
+    panel("Memorize Verbatim", REF.verbatim.map((v) =>
+      `<div class="verb"><div class="verb-t">${esc(v[0])}</div><blockquote>${esc(v[1])}</blockquote></div>`).join("")) +
+    panel("Slide Prep Checklist (Weeks 28–29)", checklistHTML("slidePrep", c.slidePrep)) +
+    panel("Admin — Pre-Viva", checklistHTML("adminPre", c.adminPre)) +
+    panel("Admin — Post-Clearance", checklistHTML("adminPost", c.adminPost));
+}
+
+function viewMoney() {
+  const s = DB.savings;
+  const pct = s.target ? Math.min(100, Math.round((s.saved / s.target) * 100)) : 0;
+  const goal = `<div class="goal">
+    <div class="goal-top"><strong>${esc(s.label)}</strong>
+      <span>RM ${Number(s.saved).toFixed(2)} / RM ${Number(s.target).toFixed(2)}</span></div>
+    <div class="bar"><div class="bar-fg" style="width:${pct}%"></div></div>
+    <div class="goal-actions">
+      <button class="btn ghost sm" data-editgoal="1">Edit goal</button>
+      <span class="sub">${pct}% · RM ${Math.max(0, s.target - s.saved).toFixed(2)} to go</span>
+    </div></div>`;
+  return sectionHeader("Expenses & Savings", "Big-picture log and the viva-fee goal. Daily spending lives in Pocket.") +
+    panel("Savings goal", goal) +
+    panel("Log", collectionHTML("expenses", DB.expenses), "expenses");
+}
+
+function viewHabits() {
+  const mon = mondayOf(new Date());
+  const days = [...Array(7)].map((_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
+  const dow = ["M", "T", "W", "T", "F", "S", "S"];
+  const grid = (list) => `<div class="habits">
+    <div class="habrow head"><div class="habname"></div>${days.map((d, i) =>
+      `<div class="habcell hdr${d.toISOString().slice(0,10) === todayISO() ? " today" : ""}">${dow[i]}<span>${d.getDate()}</span></div>`).join("")}</div>
+    ${list.map((h) => `<div class="habrow" data-hid="${h.id}">
+      <div class="habname">${esc(h.name)} <button class="icon tiny" data-delhabit="${h.id}" title="Delete">✕</button></div>
+      ${days.map((d) => { const k = h.id + "__" + d.toISOString().slice(0, 10);
+        return `<div class="habcell"><input type="checkbox" data-hlog="${k}" ${DB.habitLog[k] ? "checked" : ""}></div>`; }).join("")}
+    </div>`).join("")}
+  </div>`;
+  return sectionHeader("Habits", "This week. Islamic habits stay in your physical planner — this mirrors the Notion side only.") +
+    panel("Daily", grid(DB.habits), null) +
+    `<div class="addhabit"><input id="newHabit" placeholder="New habit…"><button class="btn ghost" data-newhabit="1">Add habit</button></div>` +
+    panel("Weekly", DB.weeklyHabits.map((h) => {
+      const k = "wk__" + h.id + "__" + mon.toISOString().slice(0, 10);
+      return `<label class="checkrow"><input type="checkbox" data-hlog="${k}" ${DB.habitLog[k] ? "checked" : ""}><span>${esc(h.name)}</span></label>`;
+    }).join(""));
+}
+
+function simpleCollectionView(coll, title, sub) {
+  return sectionHeader(title, sub, coll) + collectionHTML(coll, DB[coll]);
+}
+
+function render() {
+  $$(".nav a").forEach((a) => a.classList.toggle("active", a.dataset.sec === current));
+  const el = $("#view");
+  let html = "";
+  switch (current) {
+    case "dashboard": html = viewDashboard(); break;
+    case "thesis": html = viewThesis(); break;
+    case "viva": html = viewViva(); break;
+    case "tasks": html = simpleCollectionView("tasks", "Tasks", "Everything on your plate."); break;
+    case "habits": html = viewHabits(); break;
+    case "money": html = viewMoney(); break;
+    case "weekly": html = simpleCollectionView("weekly", "Weekly Review", "Logged each Monday."); break;
+    case "skincare": html = simpleCollectionView("skincare", "Skincare & Makeup", "Open dates and PAO countdowns."); break;
+    case "dates": html = simpleCollectionView("dates", "Important Dates", "Deadlines and milestones."); break;
+    case "contacts": html = simpleCollectionView("contacts", "Contacts", ""); break;
+    case "notes": html = simpleCollectionView("notes", "Notes / Journal", ""); break;
+    default: current = "dashboard"; html = viewDashboard();
+  }
+  el.innerHTML = html;
+  el.scrollTop = 0;
+  closeDrawer();
+}
+
+/* ---------- events (delegation) ---------- */
+document.addEventListener("click", (e) => {
+  const t = e.target;
+
+  const nav = t.closest("[data-sec]");
+  if (nav) { current = nav.dataset.sec; location.hash = current; render(); return; }
+
+  const add = t.closest("[data-add]");
+  if (add) { openForm(add.dataset.add); return; }
+
+  const rowBtn = t.closest("[data-act]");
+  if (rowBtn) {
+    const row = rowBtn.closest(".listrow");
+    const coll = row.dataset.coll, id = row.dataset.id;
+    if (rowBtn.dataset.act === "edit") openForm(coll, id);
+    else if (rowBtn.dataset.act === "del") {
+      if (confirm("Delete this entry?")) { DB[coll] = DB[coll].filter((r) => r.id !== id); save(); render(); }
+    }
+    return;
+  }
+
+  if (t.closest("[data-editviva]")) {
+    const v = prompt("Viva date (YYYY-MM-DD), or leave blank for TBC:", DB.meta.vivaDate || "");
+    if (v !== null) { DB.meta.vivaDate = v.trim(); save(); render(); }
+    return;
+  }
+  if (t.closest("[data-editgoal]")) {
+    const label = prompt("Goal name:", DB.savings.label); if (label === null) return;
+    const target = prompt("Target amount (RM):", DB.savings.target); if (target === null) return;
+    const saved = prompt("Saved so far (RM):", DB.savings.saved); if (saved === null) return;
+    DB.savings = { label: label.trim() || DB.savings.label, target: Number(target) || 0, saved: Number(saved) || 0 };
+    save(); render(); return;
+  }
+  if (t.closest("[data-newhabit]")) {
+    const inp = $("#newHabit"); if (inp && inp.value.trim()) { DB.habits.push({ id: uid(), name: inp.value.trim() }); save(); render(); }
+    return;
+  }
+  const delh = t.closest("[data-delhabit]");
+  if (delh) { if (confirm("Delete this habit?")) { DB.habits = DB.habits.filter((h) => h.id !== delh.dataset.delhabit); save(); render(); } return; }
+
+  if (t.id === "modalSave") { submitForm(); return; }
+  if (t.id === "modalCancel" || t.id === "modalBackdrop") { closeForm(); return; }
+  if (t.id === "menuBtn") { $("#sidebar").classList.toggle("open"); return; }
+  if (t.id === "drawerBackdrop") { closeDrawer(); return; }
+
+  if (t.id === "backupBtn") { doBackup(); return; }
+  if (t.id === "restoreBtn") { $("#restoreInput").click(); return; }
+});
+
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.dataset.hlog) { const k = t.dataset.hlog; if (t.checked) DB.habitLog[k] = true; else delete DB.habitLog[k]; save(); refreshDashCountsIfNeeded(); return; }
+  if (t.dataset.chk) { DB._check = DB._check || {}; DB._check[t.dataset.chk + t.dataset.ci] = t.checked; save(); return; }
+  if (t.id === "restoreInput" && t.files && t.files[0]) {
+    const fr = new FileReader();
+    fr.onload = () => {
+      try { const data = JSON.parse(fr.result); DB = Object.assign(seed(), data); save(); render(); alert("Backup restored."); }
+      catch (err) { alert("That file couldn't be read as a backup."); }
+    };
+    fr.readAsText(t.files[0]);
+  }
+});
+
+function refreshDashCountsIfNeeded() { if (current === "dashboard") render(); }
+
+function closeDrawer() { $("#sidebar").classList.remove("open"); }
+
+function doBackup() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "planner-backup-" + todayISO() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+window.addEventListener("hashchange", () => { const h = location.hash.replace("#", ""); if (h && h !== current) { current = h; render(); } });
+
+/* ---------- build sidebar nav ---------- */
+function buildNav() {
+  $("#nav").innerHTML = SECTIONS.map((s) =>
+    `<a data-sec="${s.id}" class="${s.id === current ? "active" : ""}"><span class="dot ${s.dot}"></span>${esc(s.label)}</a>`).join("");
+}
+
+buildNav();
+render();
+
+</script>
+</body>
+</html>
