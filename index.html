@@ -22,6 +22,57 @@
   --radius:16px;
 }
 *{box-sizing:border-box}
+
+/* ---- theme presets (default "paper" lives in :root above) ---- */
+[data-theme="sage"]{
+  --paper:#F4F7F0; --card:#FFFFFF; --ink:#2E3B32; --muted:#7C8A7E; --line:#DCE6D8;
+  --plum:#5B7F6B; --plum-soft:#E3EEE4;
+  --sage:#A97C50; --sage-soft:#F3E6D8;
+  --gold:#C9A227; --gold-soft:#F5EFCF;
+  --rose:#B4667A; --rose-soft:#F5E1E6;
+  --ok:#4F8B5E; --ok-bg:#E1EFE2;
+  --warn:#C9A227; --warn-bg:#F5EFCF;
+  --risk:#B3524A; --risk-bg:#F5DEDB;
+  --muted-bg:#EAEFE6;
+}
+[data-theme="midnight"]{
+  --paper:#221E27; --card:#2B2530; --ink:#EDE7F0; --muted:#A79CB0; --line:#3B3441;
+  --plum:#C98FB0; --plum-soft:#3A2E38;
+  --sage:#8FB39E; --sage-soft:#2B3630;
+  --gold:#E0B26B; --gold-soft:#3A3020;
+  --rose:#E0A0B8; --rose-soft:#3A2A32;
+  --ok:#7FBF95; --ok-bg:#22352A;
+  --warn:#E0B26B; --warn-bg:#3A3020;
+  --risk:#E08A80; --risk-bg:#3A2624;
+  --muted-bg:#332D39;
+  --shadow:0 1px 2px rgba(0,0,0,.25), 0 6px 20px rgba(0,0,0,.35);
+}
+[data-theme="rose"]{
+  --paper:#FBF1F3; --card:#FFFFFF; --ink:#3A2A32; --muted:#9C8188; --line:#F0DCE1;
+  --plum:#A85C7A; --plum-soft:#F5E3EA;
+  --sage:#7FA08D; --sage-soft:#E7F0EA;
+  --gold:#CC9A54; --gold-soft:#F6ECD9;
+  --rose:#D98BA6; --rose-soft:#FBEAF0;
+  --ok:#5B8C6E; --ok-bg:#E4EFE7;
+  --warn:#CC9A54; --warn-bg:#F6ECD9;
+  --risk:#C0554E; --risk-bg:#F6E1DF;
+  --muted-bg:#F3E7EA;
+}
+[data-theme="ocean"]{
+  --paper:#F1F6F7; --card:#FFFFFF; --ink:#223138; --muted:#7C939C; --line:#DCE8EB;
+  --plum:#3E7C8A; --plum-soft:#E1EEF0;
+  --sage:#5C9C86; --sage-soft:#E3F0EA;
+  --gold:#C79A4B; --gold-soft:#F5ECD7;
+  --rose:#A8708A; --rose-soft:#F0E2EA;
+  --ok:#4F8B72; --ok-bg:#E1EFE8;
+  --warn:#C79A4B; --warn-bg:#F5ECD7;
+  --risk:#C05C52; --risk-bg:#F5E0DD;
+  --muted-bg:#E9F1F2;
+}
+html{background:var(--paper)}
+body{transition:background-color .25s ease, color .25s ease}
+.card,.panel,.sidebar,.modal-box{transition:background-color .25s ease, border-color .25s ease}
+
 html,body{margin:0;height:100%}
 body{
   font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -57,6 +108,11 @@ button{font-family:inherit; cursor:pointer}
 .dot.gold{background:var(--gold)} .dot.rose{background:var(--rose)}
 .side-foot{padding:12px; border-top:1px solid var(--line); display:flex; gap:8px}
 .side-foot .btn{flex:1; font-size:12px; padding:8px}
+.theme-row{display:flex; gap:9px; padding:14px 20px 6px}
+.theme-dot{width:23px; height:23px; border-radius:50%; border:2px solid transparent;
+  box-shadow:0 0 0 1px var(--line) inset; padding:0; flex:0 0 auto}
+.theme-dot.active{border-color:var(--ink); box-shadow:0 0 0 2px var(--card), 0 0 0 3px var(--ink)}
+.theme-label{padding:0 20px; font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.06em; margin-top:2px}
 
 .main{flex:1; min-width:0; display:flex; flex-direction:column}
 .topbar{display:none}
@@ -210,6 +266,8 @@ button{font-family:inherit; cursor:pointer}
   <aside class="sidebar" id="sidebar">
     <div class="brand"><div class="mark">Syamimi's Planner</div><div class="sub">Personal / Life</div></div>
     <nav class="nav" id="nav"></nav>
+    <div class="theme-label">Theme</div>
+    <div class="theme-row" id="themeRow"></div>
     <div class="side-foot">
       <button class="btn ghost" id="backupBtn">Backup</button>
       <button class="btn ghost" id="restoreBtn">Restore</button>
@@ -327,11 +385,31 @@ const REF = {
   ],
 };
 
+/* ---------- themes ---------- */
+const THEMES = [
+  { id: "paper",    name: "Warm Paper",    swatch: "#8E5A79" },
+  { id: "sage",     name: "Sage Garden",   swatch: "#5B7F6B" },
+  { id: "midnight", name: "Midnight Plum", swatch: "#C98FB0" },
+  { id: "rose",     name: "Rose Quartz",   swatch: "#A85C7A" },
+  { id: "ocean",    name: "Ocean Mist",    swatch: "#3E7C8A" },
+];
+function applyTheme(id) {
+  document.documentElement.setAttribute("data-theme", id || "paper");
+}
+function buildThemeRow() {
+  const row = $("#themeRow");
+  if (!row) return;
+  const active = DB.meta.theme || "paper";
+  row.innerHTML = THEMES.map((t) =>
+    `<button class="theme-dot${t.id === active ? " active" : ""}" data-theme-pick="${t.id}" title="${esc(t.name)}" style="background:${t.swatch}"></button>`
+  ).join("");
+}
+
 /* ---------- default seed (first run only) ---------- */
 function seed() {
   const wk = mondayOf(new Date());
   return {
-    meta: { name: "Syamimi", vivaDate: "", focus: "Viva prep + journal paper" },
+    meta: { name: "Syamimi", vivaDate: "", focus: "Viva prep + journal paper", theme: "paper" },
     savings: { label: "Viva fees", target: 1500, saved: 0 },
 
     tasks: [
@@ -915,6 +993,13 @@ document.addEventListener("click", (e) => {
 
   if (t.id === "backupBtn") { doBackup(); return; }
   if (t.id === "restoreBtn") { $("#restoreInput").click(); return; }
+
+  const themePick = t.closest("[data-theme-pick]");
+  if (themePick) {
+    const id = themePick.dataset.themePick;
+    DB.meta.theme = id; applyTheme(id); save(); buildThemeRow();
+    return;
+  }
 });
 
 document.addEventListener("change", (e) => {
@@ -952,7 +1037,9 @@ function buildNav() {
     `<a data-sec="${s.id}" class="${s.id === current ? "active" : ""}"><span class="dot ${s.dot}"></span>${esc(s.label)}</a>`).join("");
 }
 
+applyTheme(DB.meta.theme);
 buildNav();
+buildThemeRow();
 render();
 
 </script>
