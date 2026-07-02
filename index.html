@@ -185,6 +185,8 @@ button{font-family:inherit; cursor:pointer}
 .quotes blockquote:last-child{margin-bottom:0}
 
 /* banner */
+.nudge{background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn);
+  border-radius:12px; padding:10px 14px; margin-bottom:16px; font-size:13.5px}
 .banner{background:var(--gold-soft); border:1px solid #eaddc2; border-radius:12px; padding:12px 16px;
   margin-bottom:16px; font-size:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
 
@@ -208,6 +210,8 @@ button{font-family:inherit; cursor:pointer}
 .verb-t{font-weight:600; font-size:13px; margin-bottom:6px}
 .verb blockquote{margin:0; padding:12px 16px; background:var(--sage-soft); border-radius:10px;
   font-size:13.5px; line-height:1.6; border:none}
+.mini{margin:4px 0 12px; padding-left:20px}
+.mini li{font-size:13px; color:var(--muted); margin-bottom:4px}
 
 /* money */
 .goal-top{display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px}
@@ -299,7 +303,7 @@ button{font-family:inherit; cursor:pointer}
    Mirrors the Notion "Personal/Life" workspace.
    ============================================================ */
 
-const STORE_KEY = "syamimi_planner_v1";
+const STORE_KEY = "syamimi_planner_v2";
 
 /* ---------- helpers ---------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -405,113 +409,164 @@ function buildThemeRow() {
   ).join("");
 }
 
-/* ---------- default seed (first run only) ---------- */
+/* ---------- default seed = data migrated from Notion (first run only) ---------- */
 function seed() {
-  const wk = mondayOf(new Date());
   return {
-    meta: { name: "Syamimi", vivaDate: "", focus: "Viva prep + journal paper", theme: "paper" },
-    savings: { label: "Viva fees", target: 1500, saved: 0 },
+    meta: { name: "Syamimi", vivaDate: "", focus: "Viva prep + saving for viva fees", theme: "paper" },
+    savings: { label: "Viva fees", target: 5000, saved: 500 },
+
+    thesisOverview: {
+      project: "Food spoilage classification using deep learning on time-series sensor data",
+      phase: "Writing complete — now in viva prep & defense readiness",
+      dataset: [
+        "15 food samples",
+        "Option B with SMOTE balancing (class imbalance handled)",
+        "2,000 samples post-SMOTE, balanced at 1,000/class",
+        "Split: 1,440 train / 160 validation / 400 test",
+        "Batch size: 64",
+      ],
+      architectures: "RNN · LSTM · CNN-LSTM — all achieving near-perfect accuracy. Final layer to preserve in any architecture change: Dense(1, activation='sigmoid').",
+      notebooks: [
+        "RNN_OptionB_SMOTE_Corrected.ipynb",
+        "LSTM_OptionB_SMOTE_Corrected.ipynb",
+        "CNNLSTM_OptionB_SMOTE_Corrected.ipynb",
+      ],
+    },
 
     tasks: [
-      { id: uid(), title: "Finish journal paper draft", status: "In progress", priority: "High", due: "2026-07-17", notes: "Discussion + Introduction, then flow check." },
-      { id: uid(), title: "Suggest examiner names to supervisor", status: "To do", priority: "High", due: "", notes: "Pre-viva admin." },
-      { id: uid(), title: "AM read + PM blind recall (Q4.4)", status: "To do", priority: "Medium", due: todayISO(), notes: "Two-touchpoint viva prep." },
+      { id: uid(), title: "Write journal paper (from thesis findings)", status: "To Do", priority: "High", due: "2026-07-17",
+        notes: "Journal article adapting thesis findings (RNN/LSTM/CNN-LSTM, Option B + SMOTE). Target: within 2 weeks. Wk1 (01–12 Jul) draft outline + Methodology/Results/Discussion/Intro, assemble draft + flow check. Wk2 (13–17 Jul) fix flow, format to journal guidelines, proofread, submit." },
     ],
-    modelRuns: [
-      { id: uid(), arch: "RNN", accuracy: "1.0000", dataset: "V3 + SMOTE (Option B)", notes: "Fastest — 33.65 s train / 1.01 s infer. Recommended.", date: "" },
-      { id: uid(), arch: "LSTM", accuracy: "1.0000", dataset: "V3 + SMOTE (Option B)", notes: "≈35.7 s train / 1.02 s infer.", date: "" },
-      { id: uid(), arch: "CNN-LSTM", accuracy: "1.0000", dataset: "V3 + SMOTE (Option B)", notes: "≈102.9 s train / 1.77 s infer — extra cost not justified at room temp.", date: "" },
-    ],
-    literature: [
-      { id: uid(), author: "Metlek et al.", year: "2021", finding: "LSTM effective for moisture-related dielectric changes (regression).", relevance: "Closest precedent — adapted idea to classification." },
-      { id: uid(), author: "Shojaeyan et al.", year: "2023", finding: "Shallow ML on single-commodity dielectric data.", relevance: "Contrast — no sequential DL, not multi-ingredient." },
-      { id: uid(), author: "Trigoso et al.", year: "2020", finding: "Dielectric quality prediction, single commodity.", relevance: "Contrast precedent." },
-      { id: uid(), author: "D. Liu et al.", year: "2021", finding: "Shallow ML, dielectric food quality.", relevance: "Contrast precedent." },
-    ],
+
+    modelRuns: [],   // Notion Model Runs database is empty
+    literature: [],  // Notion Literature database is empty
+
     writing: [
-      { id: uid(), chapter: "Ch.1 Introduction", status: "Done", notes: "" },
-      { id: uid(), chapter: "Ch.2 Literature Review", status: "Done", notes: "" },
-      { id: uid(), chapter: "Ch.3 Methodology", status: "Done", notes: "" },
-      { id: uid(), chapter: "Ch.4 Results & Discussion", status: "Done", notes: "" },
-      { id: uid(), chapter: "Ch.5 Conclusion", status: "Done", notes: "" },
+      { id: uid(), chapter: "Chapter 1: Introduction", status: "Done", notes: "" },
+      { id: uid(), chapter: "Chapter 2: Literature Review", status: "Done", notes: "" },
+      { id: uid(), chapter: "Chapter 3: Methodology", status: "Done", notes: "" },
+      { id: uid(), chapter: "Chapter 4: Results & Discussion", status: "Done", notes: "" },
+      { id: uid(), chapter: "Chapter 5: Conclusion", status: "Done", notes: "" },
     ],
+
     expenses: [
-      { id: uid(), date: todayISO(), item: "Monthly savings allocation", type: "Savings", category: "Viva fund", amount: 0 },
+      { id: uid(), date: "2026-06-25", item: "Allowance - June 2026", type: "Income", category: "", amount: 2000, notes: "Monthly allowance received" },
+      { id: uid(), date: "2026-06-25", item: "Viva Fee Savings - June 2026", type: "Saving", category: "Viva Fee", amount: 500, notes: "Set aside from June allowance" },
+      { id: uid(), date: "2026-06-25", item: "Hostel Fees", type: "Expense", category: "Bills", amount: 195, notes: "Hostel Fees" },
+      { id: uid(), date: "2026-06-25", item: "Claude", type: "Expense", category: "Subscriptions", amount: 84.72, notes: "Monthly Subscription" },
+      { id: uid(), date: "2026-06-25", item: "Spotify Premium", type: "Expense", category: "Subscriptions", amount: 9.5, notes: "Monthly subscription" },
+      { id: uid(), date: "2026-06-26", item: "Antivirus", type: "Expense", category: "Subscriptions", amount: 123, notes: "Kaspersky Annual Subscription" },
+      { id: uid(), date: "2026-06-26", item: "Dobi Afifi", type: "Income", category: "Other", amount: 11.8, notes: "Pay First - Me" },
+      { id: uid(), date: "2026-06-26", item: "Nasi Lemak Ayam", type: "Expense", category: "Food", amount: 7, notes: "Lunch" },
+      { id: uid(), date: "2026-06-26", item: "Lovaa Peptide Lip Filler", type: "Expense", category: "Shopping", amount: 32.7, notes: "Lip Gloss" },
+      { id: uid(), date: "2026-06-26", item: "Moda Shawl", type: "Expense", category: "Shopping", amount: 15.6, notes: "Tudung" },
+      { id: uid(), date: "2026-06-26", item: "Kuey Teow Goreng Daging", type: "Expense", category: "Food", amount: 6, notes: "Dinner" },
+      { id: uid(), date: "2026-06-26", item: "Kipas Milux", type: "Expense", category: "Shopping", amount: 83.91, notes: "Kipas" },
+      { id: uid(), date: "2026-06-26", item: "Wristpad and Mousepad", type: "Expense", category: "Shopping", amount: 22.8, notes: "Wristpad & Mousepad" },
     ],
+
     habits: [
       { id: uid(), name: "Log spending in Pocket" },
-      { id: uid(), name: "AM read (question bank)" },
-      { id: uid(), name: "PM blind recall (notebook)" },
-      { id: uid(), name: "Journal paper — 1 focused block" },
     ],
     weeklyHabits: [
-      { id: uid(), name: "Transfer Pocket entries to Notion" },
+      { id: uid(), name: "Transfer Pocket entries to planner" },
     ],
     habitLog: {},
+
     skincare: [
-      { id: uid(), product: "Example moisturiser", category: "Skincare", opened: todayISO(), pao: 12, status: "In use", notes: "Edit or delete this sample." },
+      { id: uid(), product: "Skin1004 Hyalu-Cica Toner Pad", category: "Skincare", opened: "2026-06-10", pao: 6, status: "Active", notes: "" },
+      { id: uid(), product: "Skin1004 Hyalu-Cica Ampoule", category: "Skincare", opened: "2026-06-13", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Skin1004 Madagascar Centella Ampoule", category: "Skincare", opened: "2026-06-14", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Round Lab Birch Cleanser", category: "Skincare", opened: "2026-06-02", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Round Lab Birch Moisturizer", category: "Skincare", opened: "2026-03-14", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Round Lab Birch Ampoule", category: "Skincare", opened: "2026-02-13", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Round Lab Birch Sunscreen", category: "Skincare", opened: "2026-02-02", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Round Lab Dokdo Ampoule", category: "Skincare", opened: "2026-03-14", pao: 12, status: "Active", notes: "" },
+      { id: uid(), product: "Artistry Hydrating Toner", category: "Skincare", opened: "2026-02-08", pao: 12, status: "Active", notes: "" },
     ],
-    dates: [
-      { id: uid(), title: "Journal paper submission", date: "2026-07-17", notes: "Moved from 12 July." },
-      { id: uid(), title: "Viva date", date: "", notes: "TBC — depends on pre-viva admin." },
-    ],
-    contacts: [
-      { id: uid(), name: "Supervisor", role: "Supervisor", detail: "Pre-viva forms, examiner nominations." },
-    ],
+
+    dates: [],      // Notion Calendar / Important Dates is empty
+    contacts: [],   // Notion Contacts is empty
+
     weekly: [
-      { id: uid(), week: "Week 27", date: wk.toISOString().slice(0, 10), wins: "", improve: "", next: "" },
+      { id: uid(), week: "Week 27 (29 Jun–05 Jul)", date: "2026-06-29", wins: "", improve: "", next: "" },
     ],
-    notes: [
-      { id: uid(), title: "Welcome", date: todayISO(), body: "This is your standalone planner. Everything saves to this device's browser. Use Backup in the sidebar now and then." },
-    ],
+    notes: [],      // Notion Notes / Journal is empty
+
     questionBank: [
-      { id: uid(), qid: "Q4.4", risk: "Highest", topic: "Perfect 1.0000 accuracy — overfitting, leakage, or genuinely easy?", mastery: "Practicing" },
-      { id: uid(), qid: "Q3.12", risk: "Highest", topic: "Replicate-level vs sample-day-level split inflating accuracy.", mastery: "Not started" },
-      { id: uid(), qid: "Q3.10", risk: "Highest", topic: "Single fixed seed 42 — enough, or check across seeds?", mastery: "Not started" },
-      { id: uid(), qid: "Q4.5", risk: "Highest", topic: "Negative ε′ minimum (−5.976) — calibration artefact, not yet verified.", mastery: "Not started" },
-      { id: uid(), qid: "Q4.6", risk: "Highest", topic: "ε″ side never audited against raw data like ε′ was.", mastery: "Not started" },
-      { id: uid(), qid: "Q3.5", risk: "Highest", topic: "Single-assessor sensory labelling, no instrumental verification.", mastery: "Practicing" },
+      { id: uid(), qid: "Q4.4", chapter: "Ch.4", topic: "All three models hit perfect 1.0000 accuracy — overfitting, leakage, or genuinely easy task?", risk: "Highest", mastery: "Not started", note: "The single highest-stakes question in the viva." },
+      { id: uid(), qid: "Q3.12", chapter: "Ch.3", topic: "Could replicate-level (vs sample-day-level) splitting be inflating that accuracy?", risk: "Highest", mastery: "Not started", note: "Confirm which way the split was actually done before the viva." },
+      { id: uid(), qid: "Q3.10", chapter: "Ch.3", topic: "Was a single fixed seed (42) enough, or should robustness across seeds have been checked?", risk: "High", mastery: "Not started", note: "Confirm if multi-seed runs exist; have an honest answer either way." },
+      { id: uid(), qid: "Q4.5", chapter: "Ch.4", topic: "Table 4.3's negative ε′ minimum (−5.976) — physically implausible.", risk: "High", mastery: "Not started", note: "Calibration-artefact explanation not yet data-verified; check raw CSV if time allows." },
+      { id: uid(), qid: "Q4.6", chapter: "Ch.4", topic: "Has the ε″ side ever been audited against raw data the way ε′ was?", risk: "High", mastery: "Not started", note: "Don't claim it's confirmed clean — frame as not yet verified." },
+      { id: uid(), qid: "Q3.5", chapter: "Ch.3", topic: "Sensory labelling by a single assessor, no instrumental verification.", risk: "Medium-High", mastery: "Not started", note: "Known, genuine limitation — answer candidly rather than defensively." },
     ],
-    weakSpots: [],
+
+    weakSpots: [
+      { id: uid(), topic: "Train/test split level (replicate vs sample-day)", fix: "Confirm before relying on Q4.4's answer.", status: "Open" },
+      { id: uid(), topic: "Whether multiple seeds were run, or just seed 42", fix: "", status: "Open" },
+      { id: uid(), topic: "ε″-side data — not yet independently audited like ε′ was", fix: "", status: "Open" },
+      { id: uid(), topic: "Negative ε′ minimum in Table 4.3", fix: "Calibration-artefact explanation still unverified.", status: "Open" },
+    ],
+
+    examinerSuggestions: [
+      "Assoc. Prof. Dr. Wee Fwen Hoon",
+      "Assoc. Prof. Ir. Ts. Dr. Rosemizi Abd Rahim",
+    ],
+
     checklists: {
       preViva: [
-        "Confirm split level: replicate vs sample-day (Q3.12)",
-        "Confirm multiple seeds vs only seed 42 (Q3.10)",
-        "Check raw CSV for the negative ε′ sample — Chilli Tuna candidate (Q4.5)",
-        "Audit ε″ side: 4.2.5, Table 4.4, Figs 4.5–4.8 (Q4.6)",
-        "Confirm 1.5/2.3 has literature-based justification for 2000–3000 MHz + Day 1/3/5 (Q1.5/Q1.6)",
-        "Confirm Ayam Kurma text + Group A–D wording match V3 (Q4.7/Q4.8)",
-        "Re-verify Table 4.2 figures: Sambal Udang, Ayam Masak Merah, Tuna Mayonnaise (Q4.17)",
-        "Double-check Metlek (2021) + Weng/Qi/Gupta citations (Q2.15)",
-        "Memorise Q5.1 and Q5.10 verbatim",
+        "Confirm train/test split: replicate-level or sample-day-level (Q3.12)",
+        "Confirm number of random seeds run — only seed 42, or multiple (Q3.10)",
+        "Check raw CSV for the sample behind the negative ε′ minimum in Table 4.3 (Q4.5)",
+        "Audit the ε″ side (Section 4.2.5 / Table 4.4 / Figs 4.5–4.8) against raw data (Q4.6)",
+        "Re-confirm Section 1.5/2.3 includes a literature-based justification for the 2000–3000 MHz range and Day 1/3/5 storage points (Q1.5, Q1.6)",
+        "Re-confirm corrected Ayam Kurma narrative text and final Group A–D wording match the submitted thesis (Q4.7, Q4.8)",
+        "Re-verify Table 4.2 figures cited for Sambal Udang, Ayam Masak Merah, Tuna Mayonnaise (Q4.17)",
+        "Double-check Metlek et al. (2021) framing and the Weng/Qi/Gupta citations against the verified Chapter 2 reference list",
+        "Memorise Q5.1 (objectives recap) and Q5.10 (one-sentence summary) word for word",
       ],
       slidePrep: [
-        "Outline the deck (Weeks 28–29)",
-        "Title + objectives slide",
-        "Methodology: five-stage framework",
-        "Results: Table 4.10 + confusion matrices",
-        "Group A–D ε′ trend figure",
-        "Limitations + future work",
-        "Closing slide (Q5.10 line)",
-        "Rehearse timing",
+        "Slide outline drafted (sections/flow)",
+        "Core content per slide written",
+        "Visuals/figures selected (correct numbering: 4.9–4.26)",
+        "Speaker notes added",
+        "Full timed practice run completed",
+        "Timing noted (target vs actual)",
+        "Backup copy saved (USB/cloud)",
+      ],
+      mockQA: [
+        "List likely questions per chapter",
+        "Practice explaining methodology (Option B + SMOTE rationale)",
+        "Practice explaining RNN vs LSTM vs CNN-LSTM tradeoffs",
+        "Do at least one mock run-through with a peer/supervisor",
+      ],
+      documents: [
+        "Final thesis (printed + digital copies)",
+        "Supervisor approval form",
+        "Viva fee payment receipt",
+        "ID / matric card",
+        "Presentation slides",
+        "Examiner info",
+        "Publications (if any)",
       ],
       adminPre: [
-        "Form PIT12",
-        "Form PIT26D",
-        "Form PG05",
+        "Fill up PIT12 form",
+        "Fill up PIT26D form",
+        "Fill up PG05 form",
         "Suggest examiner names to supervisor",
       ],
       adminPost: [
-        "Confirm viva date once cleared",
-        "Book room / online setup",
-        "Print thesis copies",
-        "Final slide rehearsal",
+        "Confirm viva date with faculty",
+        "Submit final thesis copies by deadline",
+        "Settle viva fee payment",
+        "Confirm venue/time logistics",
       ],
     },
     confidence: [
-      "All three models reached 1.0000 — the finding is the single-timestep insight, not the number.",
-      "Where a limitation is real (Q3.5, Q4.5, Q4.6), answer candidly. Honesty reads as strength.",
-      "I know this thesis better than anyone in the room.",
+      "Almost at the finish line — small steps now, steady progress, trust the process.",
+      "Credibility matters more than defending the headline number — candour beats overclaiming.",
+      "For Q4.4 and Q3.12 especially: state plainly how the split was done, don't get defensive.",
     ],
   };
 }
@@ -532,11 +587,12 @@ function save() {
 
 /* ---------- collection definitions (config-driven CRUD) ---------- */
 const STATUS_COLORS = {
-  "Done": "ok", "In use": "ok", "Confident": "ok",
-  "In progress": "warn", "Practicing": "warn", "Running low": "warn",
-  "To do": "muted", "Not started": "muted", "Replaced": "muted",
-  "Highest": "risk", "High": "risk", "Empty": "risk",
+  "Done": "ok", "In use": "ok", "Confident": "ok", "Active": "ok",
+  "In progress": "warn", "In Progress": "warn", "Practicing": "warn", "Running low": "warn",
+  "To do": "muted", "To Do": "muted", "Not started": "muted", "Replaced": "muted",
+  "Highest": "risk", "High": "risk", "Medium-High": "risk", "Empty": "risk",
   "Medium": "warn", "Low": "muted",
+  "Income": "ok", "Saving": "ok", "Expense": "muted", "Open": "warn",
 };
 function badge(val) {
   if (!val) return "";
@@ -549,7 +605,7 @@ const COLLECTIONS = {
     empty: "No tasks yet. Add the next thing on your plate.",
     fields: [
       { key: "title", label: "Task", type: "text", req: true },
-      { key: "status", label: "Status", type: "select", options: ["To do", "In progress", "Done"] },
+      { key: "status", label: "Status", type: "select", options: ["To Do", "In Progress", "Done"] },
       { key: "priority", label: "Priority", type: "select", options: ["High", "Medium", "Low"] },
       { key: "due", label: "Due", type: "date" },
       { key: "notes", label: "Notes", type: "textarea" },
@@ -597,13 +653,14 @@ const COLLECTIONS = {
     empty: "No entries. This is the big-picture log — daily spending stays in Pocket.",
     fields: [
       { key: "date", label: "Date", type: "date" },
-      { key: "item", label: "Item", type: "text", req: true },
-      { key: "type", label: "Type", type: "select", options: ["Expense", "Savings", "Income"] },
+      { key: "item", label: "Entry", type: "text", req: true },
+      { key: "type", label: "Type", type: "select", options: ["Income", "Expense", "Saving"] },
       { key: "category", label: "Category", type: "text" },
       { key: "amount", label: "Amount (RM)", type: "number" },
+      { key: "notes", label: "Notes", type: "textarea" },
     ],
     row: (r) => `<div class="cell">${fmtDate(r.date)}</div>
-      <div class="cell grow"><strong>${esc(r.item)}</strong> <span class="sub">${esc(r.category)}</span></div>
+      <div class="cell grow"><strong>${esc(r.item)}</strong> <span class="sub">${esc(r.category)}</span>${r.notes ? `<div class="sub">${esc(r.notes)}</div>` : ""}</div>
       <div class="cell">${badge(r.type)}</div>
       <div class="cell mono">RM ${Number(r.amount || 0).toFixed(2)}</div>`,
   },
@@ -614,7 +671,7 @@ const COLLECTIONS = {
       { key: "category", label: "Category", type: "select", options: ["Skincare", "Makeup", "Suncare", "Other"] },
       { key: "opened", label: "Date opened", type: "date" },
       { key: "pao", label: "PAO (months)", type: "number" },
-      { key: "status", label: "Status", type: "select", options: ["In use", "Running low", "Empty", "Replaced"] },
+      { key: "status", label: "Status", type: "select", options: ["Active", "Running low", "Empty", "Replaced"] },
       { key: "notes", label: "Notes", type: "textarea" },
     ],
     row: (r) => {
@@ -687,11 +744,13 @@ const COLLECTIONS = {
     fields: [
       { key: "qid", label: "Q ID", type: "text", req: true },
       { key: "topic", label: "Question / topic", type: "textarea", req: true },
-      { key: "risk", label: "Risk", type: "select", options: ["Highest", "High", "Medium", "Low"] },
-      { key: "mastery", label: "Mastery", type: "select", options: ["Not started", "Practicing", "Confident"] },
+      { key: "chapter", label: "Chapter", type: "text" },
+      { key: "risk", label: "Difficulty", type: "select", options: ["Highest", "High", "Medium-High", "Medium", "Low"] },
+      { key: "mastery", label: "Prepared?", type: "select", options: ["Not started", "Practicing", "Confident"] },
+      { key: "note", label: "Note", type: "textarea" },
     ],
     row: (r) => `<div class="cell"><strong class="mono">${esc(r.qid)}</strong></div>
-      <div class="cell grow">${esc(r.topic)}</div>
+      <div class="cell grow">${esc(r.topic)}<div class="sub">${[r.chapter, r.note].filter(Boolean).map(esc).join(" · ")}</div></div>
       <div class="cell">${badge(r.risk)}</div>
       <div class="cell">${badge(r.mastery)}</div>`,
   },
@@ -811,12 +870,21 @@ function viewDashboard() {
   const mon = mondayOf(new Date());
   const doneToday = DB.habits.filter((h) => DB.habitLog[h.id + "__" + todayISO()]).length;
 
+  const lb = DB.meta.lastBackup;
+  const bdays = lb ? daysBetween(lb, todayISO()) : null;
+  let backupNudge = "";
+  if (bdays === null)
+    backupNudge = `<div class="nudge">💾 No backup yet — tap <strong>Backup</strong> in the sidebar and save the file to iCloud Drive.</div>`;
+  else if (bdays >= 7)
+    backupNudge = `<div class="nudge">💾 Last backup ${bdays} days ago — worth taking a fresh one.</div>`;
+
   return `
   <div class="hero">
     <div class="hero-greet">${greet}, ${esc(DB.meta.name)}.</div>
     <div class="hero-date">${now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
     <div class="hero-focus">Focus: <em>${esc(DB.meta.focus)}</em></div>
   </div>
+  ${backupNudge}
   <div class="dash-grid">
     <div class="card accent-gold viva-card">${vivaCard}
       <button class="btn ghost sm" data-editviva="1">Set viva date</button></div>
@@ -843,8 +911,18 @@ function viewDashboard() {
 }
 
 function viewThesis() {
+  const o = DB.thesisOverview || {};
+  const overview = panel("Overview", `
+    <div class="sub" style="margin-bottom:10px"><strong>Project:</strong> ${esc(o.project || "")}<br><strong>Current phase:</strong> ${esc(o.phase || "")}</div>
+    <div class="verb-t">Dataset</div>
+    <ul class="mini">${(o.dataset || []).map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
+    <div class="verb-t">Architectures</div>
+    <p class="sub">${esc(o.architectures || "")}</p>
+    <div class="verb-t">Notebooks (Google Drive)</div>
+    <ul class="mini">${(o.notebooks || []).map((n) => `<li class="mono">${esc(n)}</li>`).join("")}</ul>`);
   return sectionHeader("Thesis Hub — Food Spoilage ML",
     "Writing complete (all five chapters Done). Now: viva prep + journal paper.") +
+    overview +
     panel("Model Runs", collectionHTML("modelRuns", DB.modelRuns), "modelRuns") +
     panel("Literature", collectionHTML("literature", DB.literature), "literature") +
     panel("Writing Tracker", collectionHTML("writing", DB.writing), "writing");
@@ -877,7 +955,11 @@ function viewViva() {
     panel("Memorize Verbatim", REF.verbatim.map((v) =>
       `<div class="verb"><div class="verb-t">${esc(v[0])}</div><blockquote>${esc(v[1])}</blockquote></div>`).join("")) +
     panel("Slide Prep Checklist (Weeks 28–29)", checklistHTML("slidePrep", c.slidePrep)) +
-    panel("Admin — Pre-Viva", checklistHTML("adminPre", c.adminPre)) +
+    panel("Mock Q&A Prep", checklistHTML("mockQA", c.mockQA)) +
+    panel("Documents Needed", checklistHTML("documents", c.documents)) +
+    panel("Admin — Pre-Viva", checklistHTML("adminPre", c.adminPre) +
+      `<div class="verb-t" style="margin-top:12px">Examiner suggestions (draft)</div>
+       <ul class="mini">${(DB.examinerSuggestions || []).map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`) +
     panel("Admin — Post-Clearance", checklistHTML("adminPost", c.adminPost));
 }
 
@@ -1021,12 +1103,14 @@ function refreshDashCountsIfNeeded() { if (current === "dashboard") render(); }
 function closeDrawer() { $("#sidebar").classList.remove("open"); }
 
 function doBackup() {
+  DB.meta.lastBackup = todayISO(); save();
   const blob = new Blob([JSON.stringify(DB, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "planner-backup-" + todayISO() + ".json";
   a.click();
   URL.revokeObjectURL(a.href);
+  if (current === "dashboard") render();
 }
 
 window.addEventListener("hashchange", () => { const h = location.hash.replace("#", ""); if (h && h !== current) { current = h; render(); } });
