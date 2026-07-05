@@ -215,6 +215,31 @@ button{font-family:inherit; cursor:pointer}
 .mini{margin:4px 0 12px; padding-left:20px}
 .mini li{font-size:13px; color:var(--muted); margin-bottom:4px}
 
+/* calendar */
+.cal{margin-bottom:2px}
+.calhead{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+.calhead-mid{display:flex; align-items:baseline; gap:10px; font-family:"Fraunces",serif; font-size:15px}
+.caltoday{font-family:"Inter",sans-serif; font-size:11.5px; color:var(--plum); font-weight:600;
+  cursor:pointer; text-decoration:underline}
+.calarrow{font-size:18px; padding:2px 10px}
+.calgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.calgrid.caldow{margin-bottom:4px}
+.calcell{aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:10px; font-size:13px; position:relative}
+.calcell.dowlabel{font-size:10.5px; color:var(--muted); font-weight:600; aspect-ratio:auto; padding:2px 0}
+.calcell.has{cursor:pointer; background:var(--plum-soft)}
+.calcell.has:hover{background:var(--rose-soft)}
+.calcell.today{box-shadow:inset 0 0 0 1.5px var(--plum)}
+.calcell.today .calnum{color:var(--plum); font-weight:700}
+.calnum{line-height:1}
+.caldot{width:5px; height:5px; border-radius:50%; background:var(--plum); margin-top:3px}
+.listrow.pulse{animation:pulseRow 1.4s ease}
+@keyframes pulseRow{0%{background:var(--gold-soft)} 100%{background:transparent}}
+@media (max-width:860px){
+  .calcell{font-size:12px}
+  .calnum{font-size:12px}
+}
+
 /* money */
 .goal-top{display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px}
 .bar{height:12px; background:var(--muted-bg); border-radius:20px; overflow:hidden}
@@ -302,6 +327,8 @@ button{font-family:inherit; cursor:pointer}
   border-radius:18px; box-shadow:0 10px 26px rgba(91,63,214,.28); margin:18px 0 24px;
   transition:transform .12s ease, box-shadow .12s ease}
 .pk-addbtn:active{transform:scale(.975); box-shadow:0 6px 16px rgba(91,63,214,.28)}
+.pk-importrow{text-align:center; margin:-16px 0 24px}
+.pk-importlink{font-size:12px; color:var(--pk-muted); text-decoration:underline; cursor:pointer}
 .pk-sec{margin-top:26px}
 .pk-sec-h{font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--pk-muted);
   font-weight:700; margin-bottom:12px}
@@ -387,6 +414,7 @@ button{font-family:inherit; cursor:pointer}
       <button class="btn ghost" id="backupBtn">Backup</button>
       <button class="btn ghost" id="restoreBtn">Restore</button>
       <input type="file" id="restoreInput" accept="application/json" hidden>
+    <input type="file" id="pkImportInput" accept="application/json" hidden>
     </div>
   </aside>
   <div class="main">
@@ -1122,6 +1150,48 @@ function viewPocket() {
     `<div class="pk-root"><div class="pk-wrap" id="pkApp"></div></div>`;
 }
 
+function firstOfMonth(d) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
+let calCursor = firstOfMonth(new Date());
+
+function calendarHTML(cursor) {
+  const year = cursor.getFullYear(), month = cursor.getMonth();
+  const first = new Date(year, month, 1);
+  const startOffset = (first.getDay() + 6) % 7; // Mon = 0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = todayISO();
+  const byDate = {};
+  DB.dates.forEach((d) => { if (d.date) (byDate[d.date] = byDate[d.date] || []).push(d); });
+
+  const monthLabel = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const dow = ["M", "T", "W", "T", "F", "S", "S"];
+
+  let cells = "";
+  for (let i = 0; i < startOffset; i++) cells += `<div class="calcell empty"></div>`;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+    const has = byDate[iso];
+    cells += `<div class="calcell${iso === today ? " today" : ""}${has ? " has" : ""}" data-calday="${iso}">
+      <span class="calnum">${day}</span>${has ? `<span class="caldot"></span>` : ""}
+    </div>`;
+  }
+
+  return `<div class="cal">
+    <div class="calhead">
+      <button class="icon calarrow" data-calnav="-1">‹</button>
+      <div class="calhead-mid"><strong>${esc(monthLabel)}</strong> <span class="caltoday" data-caltoday="1">Today</span></div>
+      <button class="icon calarrow" data-calnav="1">›</button>
+    </div>
+    <div class="calgrid caldow">${dow.map((d) => `<div class="calcell dowlabel">${d}</div>`).join("")}</div>
+    <div class="calgrid">${cells}</div>
+  </div>`;
+}
+
+function viewDates() {
+  return sectionHeader("Important Dates", "Tap a marked day to jump to it below.", "dates") +
+    panel("Calendar", calendarHTML(calCursor)) +
+    collectionHTML("dates", DB.dates);
+}
+
 function render() {
   $$(".nav a").forEach((a) => a.classList.toggle("active", a.dataset.sec === current));
   const el = $("#view");
@@ -1136,7 +1206,7 @@ function render() {
     case "pocket": html = viewPocket(); break;
     case "weekly": html = simpleCollectionView("weekly", "Weekly Review", "Logged each Monday."); break;
     case "skincare": html = simpleCollectionView("skincare", "Skincare & Makeup", "Open dates and PAO countdowns."); break;
-    case "dates": html = simpleCollectionView("dates", "Important Dates", "Deadlines and milestones."); break;
+    case "dates": html = viewDates(); break;
     case "contacts": html = simpleCollectionView("contacts", "Contacts", ""); break;
     case "notes": html = simpleCollectionView("notes", "Notes / Journal", ""); break;
     default: current = "dashboard"; html = viewDashboard();
@@ -1286,6 +1356,7 @@ const PK = (function () {
       '<span class="pk-io"><span class="pk-iodot" style="background:var(--pk-coral)"></span>Out · ' + CUR + ' ' + fmt(out) + '</span>' +
       '</div>' + stream + '</div>' +
       '<button class="pk-addbtn" data-pkadd="1">+ Add transaction</button>' +
+      '<div class="pk-importrow"><span class="pk-importlink" data-pkimport="1">Import old Pocket backup</span></div>' +
       body + recentHtml;
   }
 
@@ -1297,6 +1368,8 @@ const PK = (function () {
     mountEl.querySelectorAll('[data-pkcatrow]').forEach((el) => el.onclick = () => openCategoryDetail(el.dataset.pkcatrow));
     const addBtn = mountEl.querySelector('[data-pkadd]');
     if (addBtn) addBtn.onclick = openAdd;
+    const importLink = mountEl.querySelector('[data-pkimport]');
+    if (importLink) importLink.onclick = () => document.getElementById("pkImportInput").click();
     const seeAllBtn = mountEl.querySelector('[data-pkseeall]');
     if (seeAllBtn) seeAllBtn.onclick = openAllTransactions;
   }
@@ -1405,7 +1478,24 @@ const PK = (function () {
     pkSave(); closeSheet(scrim); refresh();
   }
 
-  return { mount(el) { mountEl = el; refresh(); } };
+  function importBackup(jsonText) {
+    const data = JSON.parse(jsonText);
+    const incoming = Array.isArray(data.txns) ? data.txns : (Array.isArray(data) ? data : null);
+    if (!incoming) throw new Error("bad format");
+    const existingIds = new Set(txns.map((t) => t.id));
+    let added = 0;
+    incoming.forEach((t) => {
+      if (!t || !t.id || existingIds.has(t.id)) return;
+      if (typeof t.amount !== "number" || !t.ts) return;
+      txns.push({ id: t.id, amount: t.amount, cat: t.cat, type: t.type || "expense", note: t.note || "", ts: t.ts });
+      existingIds.add(t.id);
+      added++;
+    });
+    if (added > 0) { pkSave(); refresh(); }
+    return added;
+  }
+
+  return { mount(el) { mountEl = el; refresh(); }, importBackup };
 })();
 
 /* ---------- events (delegation) ---------- */
@@ -1462,6 +1552,24 @@ document.addEventListener("click", (e) => {
     DB.meta.theme = id; applyTheme(id); save(); buildThemeRow();
     return;
   }
+
+  const calNav = t.closest("[data-calnav]");
+  if (calNav) { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + Number(calNav.dataset.calnav), 1); render(); return; }
+  if (t.closest("[data-caltoday]")) { calCursor = firstOfMonth(new Date()); render(); return; }
+  const calDay = t.closest("[data-calday]");
+  if (calDay) {
+    const iso = calDay.dataset.calday;
+    const match = DB.dates.find((d) => d.date === iso);
+    if (match) {
+      const row = document.querySelector('.listrow[data-coll="dates"][data-id="' + match.id + '"]');
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("pulse");
+        setTimeout(() => row.classList.remove("pulse"), 1400);
+      }
+    }
+    return;
+  }
 });
 
 document.addEventListener("change", (e) => {
@@ -1475,6 +1583,17 @@ document.addEventListener("change", (e) => {
       catch (err) { alert("That file couldn't be read as a backup."); }
     };
     fr.readAsText(t.files[0]);
+  }
+  if (t.id === "pkImportInput" && t.files && t.files[0]) {
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        const count = PK.importBackup(fr.result);
+        alert(count > 0 ? ("Imported " + count + " transaction" + (count !== 1 ? "s" : "") + ".") : "No new transactions found in that file — they may already be here.");
+      } catch (err) { alert("That file couldn't be read as a Pocket backup."); }
+    };
+    fr.readAsText(t.files[0]);
+    t.value = "";
   }
 });
 
