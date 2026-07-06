@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
 :root{
   --paper:#FAF6F0; --card:#FFFFFF; --ink:#33303A; --muted:#8A8594; --line:#ECE4D9;
@@ -401,6 +402,20 @@ button{font-family:inherit; cursor:pointer}
   .pk-seg,.pk-bar i{transition:none!important}
   .pk-scrim,.pk-sheet{animation:none!important}
 }
+
+/* ---- Expenses & Savings: chart panels ---- */
+.chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px}
+@media (max-width:640px){ .chart-grid{grid-template-columns:1fr} }
+.chart-box{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px}
+.chart-box.full{margin-bottom:14px}
+.chart-box canvas{max-height:240px}
+.mgroups .mgroup{border-bottom:1px solid var(--line); padding:10px 2px}
+.mgroups .mgroup:last-child{border-bottom:none}
+.mgroups summary{cursor:pointer; list-style:none; display:flex; justify-content:space-between; font-weight:600; font-size:14px}
+.mgroups summary::-webkit-details-marker{display:none}
+.mrow{display:flex; justify-content:space-between; padding:8px 0 8px 10px; border-top:1px dashed var(--line)}
+.mrow:first-of-type{border-top:none}
+.m-Expense{color:var(--rose)} .m-Income{color:var(--sage)} .m-Saving{color:var(--gold)}
 </style>
 </head>
 <body>
@@ -1116,7 +1131,96 @@ function viewMoney() {
     </div></div>`;
   return sectionHeader("Expenses & Savings", "Big-picture log and the viva-fee goal. Daily spending lives in Pocket.") +
     panel("Savings goal", goal) +
+    panel("Spending Charts", moneyChartsHTML()) +
     panel("Log", collectionHTML("expenses", DB.expenses), "expenses");
+}
+
+function moneyChartsHTML() {
+  return `
+    <div class="chart-grid">
+      <div class="chart-box"><canvas id="catChart"></canvas></div>
+      <div class="chart-box"><canvas id="flowBarChart"></canvas></div>
+    </div>
+    <div class="chart-box full"><canvas id="netLineChart"></canvas></div>
+    <div id="moneyMonthGroups" class="mgroups"></div>`;
+}
+
+function buildMoneyCharts() {
+  if (!window.Chart) return;
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const rose = cssVar('--rose'), sage = cssVar('--sage'), gold = cssVar('--gold');
+  const muted = cssVar('--muted'), ink = cssVar('--ink'), line = cssVar('--line');
+  const palette = ['--rose','--sage','--gold','--plum','--rose-soft','--sage-soft','--gold-soft'].map(cssVar);
+
+  const expenses = DB.expenses || [];
+  const fmtRM = (n) => 'RM ' + Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const monthLabel = (k) => new Date(k + '-01').toLocaleDateString(undefined, {month:'short', year:'numeric'});
+
+  // category breakdown (Expense rows only)
+  const catTotals = {};
+  expenses.filter(e => e.type === 'Expense').forEach(e => {
+    const c = e.category || 'Other';
+    catTotals[c] = (catTotals[c]||0) + Number(e.amount || 0);
+  });
+  const catLabels = Object.keys(catTotals);
+  Chart.getChart('catChart')?.destroy();
+  new Chart($('#catChart'), {
+    type: 'doughnut',
+    data: { labels: catLabels, datasets: [{ data: catLabels.map(c=>catTotals[c]), backgroundColor: palette, borderWidth:0 }] },
+    options: { plugins:{ legend:{ position:'bottom', labels:{ color: ink, boxWidth:10, font:{size:11} } },
+      tooltip:{ callbacks:{ label: ctx => ' '+ctx.label+': '+fmtRM(ctx.raw) } } }, cutout:'58%' }
+  });
+
+  // monthly grouping (shared by bar + line + list)
+  const months = {};
+  expenses.forEach(e => {
+    const key = (e.date || '').slice(0,7);
+    if (!key) return;
+    months[key] = months[key] || { Income:0, Expense:0, Saving:0, items:[] };
+    months[key][e.type] = (months[key][e.type]||0) + Number(e.amount || 0);
+    months[key].items.push(e);
+  });
+  const monthKeys = Object.keys(months).sort();
+
+  Chart.getChart('flowBarChart')?.destroy();
+  new Chart($('#flowBarChart'), {
+    type:'bar',
+    data:{ labels: monthKeys.map(monthLabel), datasets:[
+      { label:'Income', data: monthKeys.map(k=>months[k].Income), backgroundColor: sage },
+      { label:'Expense', data: monthKeys.map(k=>months[k].Expense), backgroundColor: rose },
+      { label:'Saving', data: monthKeys.map(k=>months[k].Saving), backgroundColor: gold }
+    ]},
+    options:{ plugins:{ legend:{ position:'bottom', labels:{ color: ink, boxWidth:10, font:{size:11} } } },
+      scales:{ x:{ ticks:{color:muted}, grid:{color:line} }, y:{ ticks:{ color:muted, callback:v=>'RM '+v }, grid:{color:line} } } }
+  });
+
+  Chart.getChart('netLineChart')?.destroy();
+  new Chart($('#netLineChart'), {
+    type:'line',
+    data:{ labels: monthKeys.map(monthLabel), datasets:[{
+      label:'Net (Income − Expense)', data: monthKeys.map(k=>months[k].Income - months[k].Expense),
+      borderColor: rose, backgroundColor: rose+'22', fill:true, tension:.3, pointRadius:4, pointBackgroundColor: rose
+    }]},
+    options:{ plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ' '+fmtRM(ctx.raw) } } },
+      scales:{ x:{ ticks:{color:muted}, grid:{color:line} }, y:{ ticks:{ color:muted, callback:v=>'RM '+v }, grid:{color:line} } } }
+  });
+
+  // grouped-by-month transaction list
+  const wrap = $('#moneyMonthGroups');
+  if (wrap) {
+    wrap.innerHTML = monthKeys.slice().reverse().map(k => {
+      const m = months[k], net = m.Income - m.Expense;
+      const rows = m.items.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(e => `
+        <div class="mrow">
+          <div class="cell grow"><strong>${esc(e.item)}</strong><div class="sub">${esc(e.category||'')} · ${fmtDate(e.date)}</div></div>
+          <div class="cell mono m-${e.type}">${e.type==='Expense'?'−':'+'} ${fmtRM(e.amount)}</div>
+        </div>`).join('');
+      return `<details class="mgroup" ${k===monthKeys[monthKeys.length-1] ? 'open' : ''}>
+        <summary><span>${monthLabel(k)}</span><span class="sub">Net ${fmtRM(net)}</span></summary>
+        ${rows}
+      </details>`;
+    }).join('');
+  }
 }
 
 function viewHabits() {
@@ -1214,6 +1318,7 @@ function render() {
   el.innerHTML = html;
   el.scrollTop = 0;
   if (current === "pocket") PK.mount($("#pkApp"));
+  if (current === "money") buildMoneyCharts();
   closeDrawer();
 }
 
