@@ -1137,6 +1137,7 @@ function viewMoney() {
 
 function moneyChartsHTML() {
   return `
+    <p id="chartStatus" class="sub" style="margin:-4px 0 12px"></p>
     <div class="chart-grid">
       <div class="chart-box"><canvas id="catChart"></canvas></div>
       <div class="chart-box"><canvas id="flowBarChart"></canvas></div>
@@ -1146,13 +1147,18 @@ function moneyChartsHTML() {
 }
 
 function buildMoneyCharts() {
-  if (!window.Chart) return;
+  const expenses = DB.expenses || [];
+  const statusEl = document.getElementById('chartStatus');
+  if (!window.Chart) {
+    if (statusEl) statusEl.innerHTML = '⚠️ Chart library failed to load — check your internet connection, then refresh this page.';
+    return;
+  }
+  if (statusEl) statusEl.textContent = `Chart engine loaded ✓ · ${expenses.length} entries found`;
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const rose = cssVar('--rose'), sage = cssVar('--sage'), gold = cssVar('--gold');
   const muted = cssVar('--muted'), ink = cssVar('--ink'), line = cssVar('--line');
   const palette = ['--rose','--sage','--gold','--plum','--rose-soft','--sage-soft','--gold-soft'].map(cssVar);
 
-  const expenses = DB.expenses || [];
   const fmtRM = (n) => 'RM ' + Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
   const monthLabel = (k) => new Date(k + '-01').toLocaleDateString(undefined, {month:'short', year:'numeric'});
 
