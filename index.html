@@ -413,6 +413,8 @@ button{font-family:inherit; cursor:pointer}
 .mgroups .mgroup:last-child{border-bottom:none}
 .mgroups summary{cursor:pointer; list-style:none; display:flex; justify-content:space-between; font-weight:600; font-size:14px}
 .mgroups summary::-webkit-details-marker{display:none}
+.mgroups .arrow{display:inline-block; color:var(--muted); font-size:11px; transition:transform .15s ease}
+.mgroups details[open] .arrow{transform:rotate(90deg)}
 .mrow{display:flex; justify-content:space-between; padding:8px 0 8px 10px; border-top:1px dashed var(--line)}
 .mrow:first-of-type{border-top:none}
 .m-Expense{color:var(--rose)} .m-Income{color:var(--sage)} .m-Saving{color:var(--gold)}
@@ -934,6 +936,33 @@ function collectionHTML(name, arr) {
     </div>`).join("")}</div>`;
 }
 
+function expensesLogHTML(arr) {
+  const cfg = COLLECTIONS.expenses;
+  if (!arr || !arr.length) return `<div class="empty">${esc(cfg.empty)}</div>`;
+  const groups = {};
+  arr.forEach((r) => {
+    const key = (r.date || "").slice(0, 7) || "No date";
+    (groups[key] = groups[key] || []).push(r);
+  });
+  const keys = Object.keys(groups).sort().reverse();
+  return `<div class="mgroups">${keys.map((k) => {
+    const rows = groups[k].slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    const label = k === "No date" ? "No date" : new Date(k + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" });
+    const net = rows.reduce((s, r) => s + (r.type === "Income" ? Number(r.amount || 0) : r.type === "Expense" ? -Number(r.amount || 0) : 0), 0);
+    return `<details class="mgroup">
+      <summary><span>${esc(label)} <span class="arrow">▸</span></span><span class="sub">Net RM ${net.toFixed(2)} · ${rows.length} ${rows.length === 1 ? "entry" : "entries"}</span></summary>
+      <div class="list">${rows.map((r) => `
+        <div class="listrow" data-coll="expenses" data-id="${r.id}">
+          ${cfg.row(r)}
+          <div class="cell actions">
+            <button class="icon" data-act="edit" title="Edit">✎</button>
+            <button class="icon" data-act="del" title="Delete">✕</button>
+          </div>
+        </div>`).join("")}</div>
+    </details>`;
+  }).join("")}</div>`;
+}
+
 let modalCtx = null;
 function openForm(coll, id) {
   const cfg = COLLECTIONS[coll];
@@ -1132,7 +1161,7 @@ function viewMoney() {
   return sectionHeader("Expenses & Savings", "Big-picture log and the viva-fee goal. Daily spending lives in Pocket.") +
     panel("Savings goal", goal) +
     panel("Spending Charts", moneyChartsHTML()) +
-    panel("Log", collectionHTML("expenses", DB.expenses), "expenses");
+    panel("Log", expensesLogHTML(DB.expenses), "expenses");
 }
 
 function moneyChartsHTML() {
@@ -1221,8 +1250,8 @@ function buildMoneyCharts() {
           <div class="cell grow"><strong>${esc(e.item)}</strong><div class="sub">${esc(e.category||'')} · ${fmtDate(e.date)}</div></div>
           <div class="cell mono m-${e.type}">${e.type==='Expense'?'−':'+'} ${fmtRM(e.amount)}</div>
         </div>`).join('');
-      return `<details class="mgroup" ${k===monthKeys[monthKeys.length-1] ? 'open' : ''}>
-        <summary><span>${monthLabel(k)}</span><span class="sub">Net ${fmtRM(net)}</span></summary>
+      return `<details class="mgroup">
+        <summary><span>${monthLabel(k)} <span class="arrow">▸</span></span><span class="sub">Net ${fmtRM(net)}</span></summary>
         ${rows}
       </details>`;
     }).join('');
