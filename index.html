@@ -1012,7 +1012,6 @@ const SECTIONS = [
   { id: "tasks", label: "Tasks", dot: "plum" },
   { id: "habits", label: "Habits", dot: "sage" },
   { id: "money", label: "Expenses & Savings", dot: "gold" },
-  { id: "pocket", label: "Pocket", dot: "coral" },
   { id: "weekly", label: "Weekly Review", dot: "plum" },
   { id: "skincare", label: "Skincare & Makeup", dot: "rose" },
   { id: "dates", label: "Important Dates", dot: "sage" },
@@ -1099,14 +1098,33 @@ function viewDashboard() {
 function carriedForwardHTML() {
   const now = new Date();
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevYear = prev.getFullYear(), prevMonth = prev.getMonth();
   const prevKey = prev.toISOString().slice(0, 7);
   const prevLabel = prev.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
   let income = 0, expense = 0;
+
+  // Big-picture Expenses & Savings log
   (DB.expenses || []).forEach((e) => {
     if ((e.date || "").slice(0, 7) !== prevKey) return;
     if (e.type === "Income") income += Number(e.amount || 0);
     else if (e.type === "Expense") expense += Number(e.amount || 0);
   });
+
+  // Pocket's daily spending (separate localStorage store, same month)
+  try {
+    const raw = localStorage.getItem("pocket-tracker:v1");
+    if (raw) {
+      const pk = JSON.parse(raw);
+      (pk.txns || []).forEach((t) => {
+        const d = new Date(t.ts);
+        if (d.getFullYear() !== prevYear || d.getMonth() !== prevMonth) return;
+        if (t.type === "income") income += Number(t.amount || 0);
+        else expense += Number(t.amount || 0);
+      });
+    }
+  } catch (e) {}
+
   const net = income - expense;
   const cls = net >= 0 ? "ok" : "warn";
   const sign = net >= 0 ? "+" : "−";
@@ -1178,10 +1196,11 @@ function viewMoney() {
       <button class="btn ghost sm" data-editgoal="1">Edit goal</button>
       <span class="sub">${pct}% · RM ${Math.max(0, s.target - s.saved).toFixed(2)} to go</span>
     </div></div>`;
-  return sectionHeader("Expenses & Savings", "Big-picture log and the viva-fee goal. Daily spending lives in Pocket.") +
+  return sectionHeader("Expenses & Savings", "Big-picture log and the viva-fee goal, plus your day-to-day Pocket tracker.") +
     panel("Savings goal", goal) +
     panel("Spending Charts", moneyChartsHTML()) +
-    panel("Log", expensesLogHTML(DB.expenses), "expenses");
+    panel("Log", expensesLogHTML(DB.expenses), "expenses") +
+    panel("Pocket — Daily Spending", `<div class="pk-root"><div class="pk-wrap" id="pkApp"></div></div>`);
 }
 
 function moneyChartsHTML() {
@@ -1304,11 +1323,6 @@ function simpleCollectionView(coll, title, sub) {
   return sectionHeader(title, sub, coll) + collectionHTML(coll, DB[coll]);
 }
 
-function viewPocket() {
-  return sectionHeader("Pocket", "Daily spending — its own log, separate from the big-picture Expenses & Savings above.") +
-    `<div class="pk-root"><div class="pk-wrap" id="pkApp"></div></div>`;
-}
-
 function firstOfMonth(d) { const x = new Date(d); x.setDate(1); x.setHours(0, 0, 0, 0); return x; }
 let calCursor = firstOfMonth(new Date());
 
@@ -1362,7 +1376,6 @@ function render() {
     case "tasks": html = simpleCollectionView("tasks", "Tasks", "Everything on your plate."); break;
     case "habits": html = viewHabits(); break;
     case "money": html = viewMoney(); break;
-    case "pocket": html = viewPocket(); break;
     case "weekly": html = simpleCollectionView("weekly", "Weekly Review", "Logged each Monday."); break;
     case "skincare": html = simpleCollectionView("skincare", "Skincare & Makeup", "Open dates and PAO countdowns."); break;
     case "dates": html = viewDates(); break;
@@ -1372,7 +1385,7 @@ function render() {
   }
   el.innerHTML = html;
   el.scrollTop = 0;
-  if (current === "pocket") PK.mount($("#pkApp"));
+  if (current === "money") PK.mount($("#pkApp"));
   if (current === "money") buildMoneyCharts();
   closeDrawer();
 }
