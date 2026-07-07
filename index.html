@@ -807,7 +807,7 @@ const COLLECTIONS = {
       <div class="cell">${badge(r.status)}</div>`,
   },
   expenses: {
-    empty: "No entries. This is the big-picture log — daily spending stays in Pocket.",
+    empty: "No entries yet — big-picture entries you add here, plus anything logged in Pocket, will show up together.",
     fields: [
       { key: "date", label: "Date", type: "date" },
       { key: "item", label: "Entry", type: "text", req: true },
@@ -937,6 +937,42 @@ function collectionHTML(name, arr) {
     </div>`).join("")}</div>`;
 }
 
+function prettyCat(key) {
+  const known = { parttime: "Part-time", other_in: "Other", allowance: "Allowance", scholarship: "Scholarship", gift: "Gift" };
+  if (known[key]) return known[key];
+  return key ? key.charAt(0).toUpperCase() + key.slice(1) : "Other";
+}
+
+function combinedMoneyEntries() {
+  const list = (DB.expenses || []).map((e) => ({ ...e, source: "log" }));
+  try {
+    const raw = localStorage.getItem("pocket-tracker:v1");
+    if (raw) {
+      const pk = JSON.parse(raw);
+      (pk.txns || []).forEach((t) => {
+        const iso = new Date(t.ts).toISOString().slice(0, 10);
+        list.push({
+          id: "pk_" + t.id,
+          date: iso,
+          item: t.note || prettyCat(t.cat),
+          type: t.type === "income" ? "Income" : "Expense",
+          category: "Pocket · " + prettyCat(t.cat),
+          amount: Number(t.amount || 0),
+          notes: "",
+          source: "pocket",
+        });
+      });
+    }
+  } catch (e) {}
+  return list;
+}
+
+function refreshMoneyViews() {
+  const wrap = document.getElementById("expenseLogWrap");
+  if (wrap) wrap.innerHTML = expensesLogHTML(combinedMoneyEntries());
+  if (document.getElementById("catChart")) buildMoneyCharts();
+}
+
 function expensesLogHTML(arr) {
   const cfg = COLLECTIONS.expenses;
   if (!arr || !arr.length) return `<div class="empty">${esc(cfg.empty)}</div>`;
@@ -953,12 +989,12 @@ function expensesLogHTML(arr) {
     return `<details class="mgroup">
       <summary><span>${esc(label)} <span class="arrow">▸</span></span><span class="sub">Net RM ${net.toFixed(2)} · ${rows.length} ${rows.length === 1 ? "entry" : "entries"}</span></summary>
       <div class="list">${rows.map((r) => `
-        <div class="listrow" data-coll="expenses" data-id="${r.id}">
+        <div class="listrow" ${r.source === "pocket" ? "" : `data-coll="expenses" data-id="${r.id}"`}>
           ${cfg.row(r)}
-          <div class="cell actions">
-            <button class="icon" data-act="edit" title="Edit">✎</button>
-            <button class="icon" data-act="del" title="Delete">✕</button>
-          </div>
+          <div class="cell actions">${r.source === "pocket"
+            ? `<span class="sub" style="opacity:.65">via Pocket</span>`
+            : `<button class="icon" data-act="edit" title="Edit">✎</button>
+               <button class="icon" data-act="del" title="Delete">✕</button>`}</div>
         </div>`).join("")}</div>
     </details>`;
   }).join("")}</div>`;
@@ -1199,7 +1235,7 @@ function viewMoney() {
   return sectionHeader("Expenses & Savings", "Big-picture log and the viva-fee goal, plus your day-to-day Pocket tracker.") +
     panel("Savings goal", goal) +
     panel("Spending Charts", moneyChartsHTML()) +
-    panel("Log", expensesLogHTML(DB.expenses), "expenses") +
+    panel("Log", `<div id="expenseLogWrap">${expensesLogHTML(combinedMoneyEntries())}</div>`, "expenses") +
     panel("Pocket — Daily Spending", `<div class="pk-root"><div class="pk-wrap" id="pkApp"></div></div>`);
 }
 
@@ -1215,7 +1251,7 @@ function moneyChartsHTML() {
 }
 
 function buildMoneyCharts() {
-  const expenses = DB.expenses || [];
+  const expenses = combinedMoneyEntries();
   const statusEl = document.getElementById('chartStatus');
   if (!window.Chart) {
     if (statusEl) statusEl.innerHTML = '⚠️ Chart library failed to load — check your internet connection, then refresh this page.';
@@ -1537,7 +1573,7 @@ const PK = (function () {
     if (!mountEl) return;
     mountEl.innerHTML = panelHTML();
     requestAnimationFrame(() => { mountEl.querySelectorAll('[data-w]').forEach((el) => { el.style.width = el.dataset.w; }); });
-    mountEl.querySelectorAll('[data-pkdel]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); txns = txns.filter((t) => t.id !== b.dataset.pkdel); pkSave(); refresh(); });
+    mountEl.querySelectorAll('[data-pkdel]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); txns = txns.filter((t) => t.id !== b.dataset.pkdel); pkSave(); refresh(); if (current === "money") refreshMoneyViews(); });
     mountEl.querySelectorAll('[data-pkcatrow]').forEach((el) => el.onclick = () => openCategoryDetail(el.dataset.pkcatrow));
     const addBtn = mountEl.querySelector('[data-pkadd]');
     if (addBtn) addBtn.onclick = openAdd;
@@ -1590,7 +1626,7 @@ const PK = (function () {
     document.body.style.overflow = "hidden";
     scrim.addEventListener("click", (e) => { if (e.target === scrim) closeSheet(scrim); });
     scrim.querySelectorAll("[data-pkdel]").forEach((b) => b.onclick = () => {
-      txns = txns.filter((t) => t.id !== b.dataset.pkdel); pkSave(); closeSheet(scrim); refresh();
+      txns = txns.filter((t) => t.id !== b.dataset.pkdel); pkSave(); closeSheet(scrim); refresh(); if (current === "money") refreshMoneyViews();
     });
   }
   function openCategoryDetail(cat) {
@@ -1648,7 +1684,7 @@ const PK = (function () {
     if (!(amt > 0)) return;
     const ts = tsForDate(dateVal || todayStr());
     txns.unshift({ id: Date.now() + "-" + Math.random().toString(36).slice(2, 6), amount: amt, cat, type: mode, note: noteVal.trim(), ts });
-    pkSave(); closeSheet(scrim); refresh();
+    pkSave(); closeSheet(scrim); refresh(); if (current === "money") refreshMoneyViews();
   }
 
   function importBackup(jsonText) {
@@ -1664,7 +1700,7 @@ const PK = (function () {
       existingIds.add(t.id);
       added++;
     });
-    if (added > 0) { pkSave(); refresh(); }
+    if (added > 0) { pkSave(); refresh(); if (current === "money") refreshMoneyViews(); }
     return added;
   }
 
