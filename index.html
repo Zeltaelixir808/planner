@@ -470,7 +470,8 @@ const esc = (s) =>
   String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-const todayISO = () => new Date().toISOString().slice(0, 10);
+function localISO(d) { const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
+const todayISO = () => localISO(new Date());
 function fmtDate(iso) {
   if (!iso) return "—";
   const d = new Date(iso + "T00:00:00");
@@ -484,7 +485,7 @@ function daysBetween(aIso, bIso) {
 function addMonths(iso, months) {
   const d = new Date(iso + "T00:00:00");
   d.setMonth(d.getMonth() + Number(months || 0));
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 function mondayOf(date) {
   const d = new Date(date);
@@ -731,6 +732,7 @@ function seed() {
 /* ---------- state ---------- */
 let DB = load();
 migratePreVivaChecklist();
+migrateHabitDates();
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -758,6 +760,26 @@ function migratePreVivaChecklist() {
   for (let i = 6; i < 9; i++) delete DB._check["preViva" + i];
   DB.meta = DB.meta || {};
   DB.meta.preVivaRev = 2;
+  save();
+}
+
+// One-time fix: habit checkbox keys were built from toISOString() on a
+// local-midnight Date, which shifts every date back by one day for UTC+8
+// (Malaysia). Shifts existing habitLog date keys forward by 1 day to match
+// the corrected localISO() so already-ticked habits aren't lost.
+function migrateHabitDates() {
+  if (DB.meta && DB.meta.habitDateRev === 1) return;
+  const fixed = {};
+  Object.keys(DB.habitLog || {}).forEach((k) => {
+    const m = k.match(/^(.*)__(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) { fixed[k] = DB.habitLog[k]; return; }
+    const d = new Date(Number(m[2]), Number(m[3]) - 1, Number(m[4]));
+    d.setDate(d.getDate() + 1);
+    fixed[m[1] + "__" + localISO(d)] = DB.habitLog[k];
+  });
+  DB.habitLog = fixed;
+  DB.meta = DB.meta || {};
+  DB.meta.habitDateRev = 1;
   save();
 }
 
@@ -969,7 +991,7 @@ function combinedMoneyEntries() {
     if (raw) {
       const pk = JSON.parse(raw);
       (pk.txns || []).forEach((t) => {
-        const iso = new Date(t.ts).toISOString().slice(0, 10);
+        const iso = localISO(new Date(t.ts));
         list.push({
           id: "pk_" + t.id,
           date: iso,
@@ -1154,7 +1176,7 @@ function carriedForwardHTML() {
   const now = new Date();
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevYear = prev.getFullYear(), prevMonth = prev.getMonth();
-  const prevKey = prev.toISOString().slice(0, 7);
+  const prevKey = localISO(prev).slice(0, 7);
   const prevLabel = prev.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   let income = 0, expense = 0;
@@ -1359,10 +1381,10 @@ function viewHabits() {
   const dow = ["M", "T", "W", "T", "F", "S", "S"];
   const grid = (list) => `<div class="habits">
     <div class="habrow head"><div class="habname"></div>${days.map((d, i) =>
-      `<div class="habcell hdr${d.toISOString().slice(0,10) === todayISO() ? " today" : ""}">${dow[i]}<span>${d.getDate()}</span></div>`).join("")}</div>
+      `<div class="habcell hdr${localISO(d) === todayISO() ? " today" : ""}">${dow[i]}<span>${d.getDate()}</span></div>`).join("")}</div>
     ${list.map((h) => `<div class="habrow" data-hid="${h.id}">
       <div class="habname">${esc(h.name)} <button class="icon tiny" data-delhabit="${h.id}" title="Delete">✕</button></div>
-      ${days.map((d) => { const k = h.id + "__" + d.toISOString().slice(0, 10);
+      ${days.map((d) => { const k = h.id + "__" + localISO(d);
         return `<div class="habcell"><input type="checkbox" data-hlog="${k}" ${DB.habitLog[k] ? "checked" : ""}></div>`; }).join("")}
     </div>`).join("")}
   </div>`;
@@ -1370,7 +1392,7 @@ function viewHabits() {
     panel("Daily", grid(DB.habits), null) +
     `<div class="addhabit"><input id="newHabit" placeholder="New habit…"><button class="btn ghost" data-newhabit="1">Add habit</button></div>` +
     panel("Weekly", DB.weeklyHabits.map((h) => {
-      const k = "wk__" + h.id + "__" + mon.toISOString().slice(0, 10);
+      const k = "wk__" + h.id + "__" + localISO(mon);
       return `<label class="checkrow"><input type="checkbox" data-hlog="${k}" ${DB.habitLog[k] ? "checked" : ""}><span>${esc(h.name)}</span></label>`;
     }).join(""));
 }
