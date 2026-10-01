@@ -739,6 +739,57 @@ function seed() {
         "Settle viva fee payment",
         "Confirm venue/time logistics",
       ],
+      experimentChecklist: [
+        "🔄 dann_multiseed.ipynb — running; check morning, run two analysis cells when done",
+        "⏳ Interpret multi-seed DANN results → report to supervisor",
+        "⏳ Update Generalisation Analysis Summary with DANN results",
+        "⏳ Run beef_enose_loco.ipynb — notebook ready and validated",
+        "⏳ Run optimizer_lr_ablation.ipynb — 540 fits, not started",
+        "⏳ λ sensitivity sweep — deferred until multi-seed confirms direction",
+        "🅿 Duplicate-row fix for per-food k-fold (9 of 15 foods affected — parked)",
+        "📷 VNA screenshots (panel comment #10) — needs lab session",
+        "Beef e-nose corpus (Harvard Dataverse) — notebook built and validated ✅",
+        "Wheat/chickpea dielectric dataset (Kaggle, Çetin et al. 2026) — needs file inspection",
+        "No public dielectric spoilage dataset found after searching Mendeley, Zenodo, Figshare",
+      ],
+      thesisWritingCh1: [
+        "📝 Research gap paragraph (Problem Statement) — wait for DANN results before finalising",
+      ],
+      thesisWritingCh2: [
+        "✅ RNN equation removed (2.4.1) — in thesis Word file",
+        "✅ LSTM gate equations removed (2.4.2) — typos fixed in CHAPTER_2_THESISV3_Fixed.docx",
+        "✅ 2.6.1 merged bridge section — in thesis Word file",
+        "✅ 2.6.2 renumbered from 2.6.4 — in thesis Word file",
+        "📝 2.5.2 CNN section — check whether further compression needed (vs Change 3 in Chapter2_Revisions.docx)",
+        "📝 6 citation swaps (Change 4) — not yet applied to thesis Word file",
+        "📝 Table renumbering (2.4→2.2, 2.5→2.3, 2.6→2.4, 2.7→2.5 + all in-text refs)",
+        "📝 Table 2.7 final row update — wait for DANN results",
+      ],
+      thesisWritingCh3: [
+        "📝 Item 1: Room temperature justification → Section 3.4.2 (ready to paste from Chapter3_Additions_v2.docx)",
+        "📝 Item 2a: SMOTE equation citation → correct location in 3.6 (ready to paste)",
+        "📝 Item 2b: StandardScaler equation citation → correct location (ready to paste)",
+        "📝 Item 2c: Metrics equation citations → correct location (ready to paste)",
+        "📝 Item 3: 50 measurements justification → Section 3.5.4 (ready to paste)",
+        "📝 Item 4: S11 principle-of-operation note → Section 3.5.2 (ready to paste)",
+        "📝 Strengthen RNN/LSTM/CNN-LSTM rationale → Section 3.7.1",
+      ],
+      thesisWritingCh4: [
+        "📝 Generalisation results section (k=15/5/3) — waiting on experiments",
+        "📝 DANN enhancement results — waiting on multi-seed results",
+        "📝 Per-food k-fold CV table (with duplicate-row caveat) — waiting on experiments",
+        "📝 Optimizer ablation results — waiting on optimizer_lr_ablation.ipynb",
+        "📝 Beef e-nose benchmark results — waiting on beef_enose_loco.ipynb",
+      ],
+      thesisWritingCh5: [
+        "📝 Update contributions section (theoretical + methodological + practical)",
+        "📝 Update limitations section (generalisation + duplicate-row issue)",
+        "📝 Update future work section (larger food set, λ sweep, duplicate-row fix, external validation)",
+      ],
+      thesisWritingThroughout: [
+        "📝 Equation citation audit — Ch.2 and Ch.4 not yet done",
+        "📝 Abbreviations list — not started",
+      ],
     },
     confidence: [
       "Almost at the finish line — small steps now, steady progress, trust the process.",
@@ -1279,7 +1330,15 @@ function viewViva() {
       `<div class="verb-t" style="margin-top:12px">Examiner suggestions (draft)</div>
        <ul class="mini">${(DB.examinerSuggestions || []).map((n, i) => `<li>${esc(n)} <button class="icon" style="font-size:11px;padding:2px 5px" data-delexaminer="${i}" title="Remove">✕</button></li>`).join("")}</ul>
        <div class="addhabit"><input id="newExaminer" placeholder="Examiner name…"><button class="btn ghost" data-newexaminer="1">Add</button></div>`) +
-    panel("Admin — Post-Clearance", checklistHTML("adminPost", c.adminPost));
+    panel("Admin — Post-Clearance", checklistHTML("adminPost", c.adminPost)) +
+    `<div class="section-divider" style="margin:24px 0 8px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.5">Post-Pre-Viva Corrections</div>` +
+    panel("Experiment / Code Checklist", checklistHTML("experimentChecklist", c.experimentChecklist || [])) +
+    panel("Thesis Writing — Chapter 1", checklistHTML("thesisWritingCh1", c.thesisWritingCh1 || [])) +
+    panel("Thesis Writing — Chapter 2", checklistHTML("thesisWritingCh2", c.thesisWritingCh2 || [])) +
+    panel("Thesis Writing — Chapter 3", checklistHTML("thesisWritingCh3", c.thesisWritingCh3 || [])) +
+    panel("Thesis Writing — Chapter 4", checklistHTML("thesisWritingCh4", c.thesisWritingCh4 || [])) +
+    panel("Thesis Writing — Chapter 5", checklistHTML("thesisWritingCh5", c.thesisWritingCh5 || [])) +
+    panel("Thesis Writing — Throughout", checklistHTML("thesisWritingThroughout", c.thesisWritingThroughout || []));
 }
 
 function viewMoney() {
