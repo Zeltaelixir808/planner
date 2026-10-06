@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script type="text/javascript" src="https://ff.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=8duD8VrSawOq4DLr35OW8uGGWQ294mn_L-NjSO1cKN1BYIfFulB09n_qxybT4v3fH6AT5Z3CBlQo42XeKvfSs59OiIvd-GCY_j-u5EkSJNvDhtioe-_Tkg857maRM3HrWP2-bq_I1Ft1vilGF7hAXGgeQgZWKuS9INmB7VG_QyEJa0vdKdUeuW9RZ-TKngOgb_5JqUhkZHw6hynz2Hch82bxUwFkyKcpvcOZ7sVpv7Wbs8bg7rIcf_7ddNA7Vw6nLEJHZEJMdv87Pkor5toPFG4GjAzYnNnbzjpVb2455iMC--OAe_qjHYQKXB27ORAjR-VZ3w-LRV04cVAYF7wFe9Y-vmMLxlM0y0Vmfwec72g" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://ff.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9jaGF0Z3B0LmNvbS9iYWNrZW5kLWFwaS9lc3R1YXJ5L2NvbnRlbnQ_aWQ9ZmlsZV8wMDAwMDAwMGVjMjQ4MWZkYTE2NGNhMjViNDU5ZjViMCZmbj1TeWFtaW1pX1BsYW5uZXJfVjNfUGVyc29uYWxfTGlmZV9IUS5odG1sJmNkPWF0dGFjaG1lbnQmdHM9NDk3NTcyJnA9ZnMmY2lkPTEmc2lnPWU2OTI0NWM5NjkwM2VlZWY3YTQyNTMxMzJlMTg0NjIxZGUxZGEyOGNiODE2NWNhNTBhZGEzNmU0Y2ZiMWE4NWEmdj0w"/><script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
   --paper:#FAF6F0; --card:#FFFFFF; --ink:#33303A; --muted:#8A8594; --line:#ECE4D9;
